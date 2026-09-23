@@ -34,19 +34,19 @@ export default function Header() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // 1. PRIMARY LINKS (Visible on desktop)
+  // 1. PRIMARY LINKS (Visible on desktop - Swapped Leagues to here)
   const primaryLinks = [
     { name: 'Home', href: '/' },
     { name: 'Teams', href: '/teams' },
-    { name: 'Competitions', href: '/competitions' },
+    { name: 'Leagues', href: '/leagues' }, 
     { name: 'Programs', href: '/programs' },
     { name: 'About', href: '/about' },
   ];
 
-  // 2. SECONDARY LINKS (Grouped in "More" dropdown)
+  // 2. SECONDARY LINKS (Grouped in "More" dropdown - Swapped Competitions to here)
   const moreLinks = [
     { name: 'Players', href: '/players' },
-    { name: 'Leagues', href: '/leagues' },
+    { name: 'Competitions', href: '/competitions' },
     { name: 'Gallery', href: '/gallery' },
   ];
 
