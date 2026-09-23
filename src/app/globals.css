@@ -1,86 +1,86 @@
+/* ... (keep all your existing light/dark mode and layer code above) ... */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Oswald:wght@400;500;600;700&display=swap');
-@import "tailwindcss";
-
-@theme {
-  --color-background: #0a0a0a;
-  --color-foreground: #fafafa;
-  --color-card: #171717;
-  --color-card-foreground: #fafafa;
-  --color-muted: #262626;
-  --color-muted-foreground: #a3a3a3;
-  --color-border: #262626;
-  --color-accent: #00ff88;
-  --color-accent-foreground: #0a0a0a;
-
-  --font-sans: 'Inter', sans-serif;
-  --font-heading: 'Oswald', sans-serif;
-
-  --animate-fade-in-up: fade-in-up 0.8s ease-out forwards;
-}
-
-:root {
-  --font-sans: 'Inter', sans-serif;
-  --font-heading: 'Oswald', sans-serif;
-
-  --color-background: #0a0a0a;
-  --color-foreground: #fafafa;
-  --color-card: #171717;
-  --color-card-foreground: #fafafa;
-  --color-muted: #262626;
-  --color-muted-foreground: #a3a3a3;
-  --color-border: #262626;
-  --color-accent: #00ff88;
-  --color-accent-foreground: #0a0a0a;
-}
-
-@keyframes fade-in-up {
-  0% {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@layer base {
-  * {
-    border-color: var(--color-border);
+/* ==========================================
+   ENTERPRISE PRINT STYLESHEET
+   ========================================== */
+@media print {
+  /* 1. Force Light Mode & High Contrast (Save Ink) */
+  :root, .dark {
+    --color-background: #ffffff !important;
+    --color-foreground: #000000 !important;
+    --color-card: #ffffff !important;
+    --color-card-foreground: #000000 !important;
+    --color-muted: #f4f4f5 !important;
+    --color-muted-foreground: #52525b !important;
+    --color-border: #d4d4d8 !important;
+    --color-accent: #000000 !important; /* Black instead of green for printing */
+    --color-accent-foreground: #ffffff !important;
   }
 
   body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
-    font-family: var(--font-sans);
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    scroll-behavior: smooth;
+    background-color: white !important;
+    color: black !important;
+    font-size: 12pt !important; /* Optimal for A4 reading */
   }
 
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    font-family: var(--font-heading);
-    letter-spacing: -0.025em;
-  }
-}
-
-@layer components {
-  .section-padding {
-    @apply py-16 md:py-24 px-4 md:px-8 max-w-7xl mx-auto;
+  /* 2. Hide Unnecessary UI Elements */
+  header, 
+  footer, 
+  nav, 
+  button, 
+  .no-print, 
+  [aria-label="Toggle menu"],
+  [aria-label="Toggle theme"],
+  .fixed, /* Hides floating actions, modals, cookie banners */
+  .sticky {
+    display: none !important;
   }
 
-  .btn-primary {
-    @apply bg-[#00ff88] text-[#0a0a0a] font-bold py-3 px-8 uppercase tracking-wider transition-all duration-300 hover:bg-white hover:text-black;
+  /* 3. Optimize Layout for A4 Paper */
+  @page {
+    margin: 1.5cm;
+    size: A4;
   }
 
-  .btn-outline {
-    @apply border border-[#fafafa] text-[#fafafa] font-bold py-3 px-8 uppercase tracking-wider transition-all duration-300 hover:bg-[#fafafa] hover:text-[#0a0a0a];
+  /* 4. Prevent Awkward Page Breaks */
+  tr, 
+  .bg-card, 
+  .border, 
+  img {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  h1, h2, h3, h4 {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+    color: black !important;
+  }
+
+  /* 5. Clean Up Links and Images */
+  a {
+    text-decoration: none !important;
+    color: black !important;
+  }
+  
+  a[href^="http"]:after {
+    content: " (" attr(href) ")";
+    font-size: 10pt;
+    color: #666;
+  }
+
+  img {
+    max-width: 100% !important;
+    filter: grayscale(100%) !important; /* Saves color ink */
+  }
+
+  /* 6. Remove Shadows and Heavy Borders */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  .border, .border-border {
+    border: 1px solid #ccc !important;
   }
 }

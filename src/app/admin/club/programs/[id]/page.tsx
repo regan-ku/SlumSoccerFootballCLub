@@ -3,13 +3,29 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { ArrowLeft, Loader2 } from "lucide-react";
-import FileUpload from "@/components/ui/FileUpload"; // <-- IMPORT ADDED
+import { ArrowLeft, Loader2, AlertCircle } from "lucide-react";
+import FileUpload from "@/components/ui/FileUpload";
+import { programSchema, type ProgramFormData } from "@/lib/validations/program";
 
 const CATEGORIES = [
   "life_skills", "community_outreach", "education", 
   "health", "mentorship", "training", "player_development"
 ];
+
+// STRICT TYPE DEFINITION: Forces all fields to be strings, preventing "undefined" errors
+type ProgramFormState = {
+  name: string;
+  category: "life_skills" | "community_outreach" | "education" | "health" | "mentorship" | "training" | "player_development";
+  description: string;
+  target_age_min: string;
+  target_age_max: string;
+  schedule: string;
+  location: string;
+  coordinator_id: string;
+  photo_url: string;
+  video_url: string;
+  media_type: "image" | "video";
+};
 
 export default function EditProgramPage() {
   const router = useRouter();
@@ -20,8 +36,9 @@ export default function EditProgramPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<ProgramFormState>({
     name: "", category: "life_skills", description: "",
     target_age_min: "5", target_age_max: "20",
     schedule: "", location: "", coordinator_id: "",
@@ -31,18 +48,10 @@ export default function EditProgramPage() {
   useEffect(() => {
     const fetchData = async () => {
       const supabase = createClient();
-      
-      const { data: staffData } = await supabase
-        .from("staff")
-        .select("id, full_name, role")
-        .eq("is_active", true);
+      const { data: staffData } = await supabase.from("staff").select("id, full_name, role").eq("is_active", true);
       if (staffData) setStaffList(staffData);
 
-      const { data: progData, error } = await supabase
-        .from("programs")
-        .select("*")
-        .eq("id", progId)
-        .single();
+      const { data: progData } = await supabase.from("programs").select("*").eq("id", progId).single();
 
       if (progData) {
         setFormData({
@@ -68,15 +77,34 @@ export default function EditProgramPage() {
     e.preventDefault();
     setSaving(true);
     setSuccess("");
+    setErrors({});
+
+    // Convert strings to numbers for Zod validation
+    const payload = {
+      ...formData,
+      target_age_min: Number(formData.target_age_min),
+      target_age_max: Number(formData.target_age_max),
+    };
+
+    const result = programSchema.safeParse(payload);
+
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      result.error.issues.forEach((issue) => {
+        fieldErrors[issue.path[0] as string] = issue.message;
+      });
+      setErrors(fieldErrors);
+      setSaving(false);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
 
     const supabase = createClient();
     const { error } = await supabase
       .from("programs")
       .update({
-        ...formData,
-        target_age_min: parseInt(formData.target_age_min) || 5,
-        target_age_max: parseInt(formData.target_age_max) || 20,
-        coordinator_id: formData.coordinator_id || null,
+        ...result.data,
+        coordinator_id: result.data.coordinator_id || null,
         updated_at: new Date().toISOString()
       })
       .eq("id", progId);
@@ -105,18 +133,30 @@ export default function EditProgramPage() {
 
       {success && <div className="bg-accent/10 border border-accent text-accent p-4 font-bold uppercase text-sm">{success}</div>}
 
+      {Object.keys(errors).length > 0 && (
+        <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-sm flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-bold text-sm uppercase">Please fix the following errors:</p>
+            <ul className="text-sm list-disc list-inside mt-1">
+              {Object.values(errors).map((err, i) => <li key={i}>{err}</li>)}
+            </ul>
+          </div>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="bg-card border border-border p-8 space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="md:col-span-2">
-            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Program Name *</label>
-            <input required value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full bg-background border border-border p-3 text-foreground focus:outline-none focus:border-accent" placeholder="e.g. Weekend Mentorship" />
+            <Input label="Program Name *" required value={formData.name} error={errors.name} onChange={(v) => setFormData({...formData, name: v})} placeholder="e.g. Weekend Mentorship" />
           </div>
 
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Category *</label>
-            <select required value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} className="w-full bg-background border border-border p-3 text-foreground focus:outline-none focus:border-accent">
+            <select required value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value as any})} className={`w-full bg-background border p-3 text-foreground focus:outline-none focus:border-accent ${errors.category ? 'border-red-500' : 'border-border'}`}>
               {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat.replace('_', ' ').toUpperCase()}</option>)}
             </select>
+            {errors.category && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {errors.category}</p>}
           </div>
 
           <div>
@@ -127,97 +167,41 @@ export default function EditProgramPage() {
             </select>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Min Age</label>
-            <input type="number" required value={formData.target_age_min} onChange={(e) => setFormData({...formData, target_age_min: e.target.value})} className="w-full bg-background border border-border p-3 text-foreground focus:outline-none focus:border-accent" />
-          </div>
+          <Input label="Min Age" required type="number" value={formData.target_age_min} error={errors.target_age_min} onChange={(v) => setFormData({...formData, target_age_min: v})} />
+          <Input label="Max Age" required type="number" value={formData.target_age_max} error={errors.target_age_max} onChange={(v) => setFormData({...formData, target_age_max: v})} />
+          <Input label="Schedule" value={formData.schedule} error={errors.schedule} onChange={(v) => setFormData({...formData, schedule: v})} placeholder="e.g. Saturdays 9AM - 12PM" />
+          <Input label="Location" value={formData.location} error={errors.location} onChange={(v) => setFormData({...formData, location: v})} placeholder="e.g. Community Hall" />
 
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Max Age</label>
-            <input type="number" required value={formData.target_age_max} onChange={(e) => setFormData({...formData, target_age_max: e.target.value})} className="w-full bg-background border border-border p-3 text-foreground focus:outline-none focus:border-accent" />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Schedule</label>
-            <input value={formData.schedule} onChange={(e) => setFormData({...formData, schedule: e.target.value})} className="w-full bg-background border border-border p-3 text-foreground focus:outline-none focus:border-accent" placeholder="e.g. Saturdays 9AM - 12PM" />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Location</label>
-            <input value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} className="w-full bg-background border border-border p-3 text-foreground focus:outline-none focus:border-accent" placeholder="e.g. Community Hall" />
-          </div>
-
-          {/* Media Type Selection */}
           <div className="md:col-span-2">
             <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Media Type</label>
             <div className="grid grid-cols-2 gap-4">
-              <button
-                type="button"
-                onClick={() => setFormData({...formData, media_type: "image"})}
-                className={`p-3 border text-sm font-bold uppercase transition-colors ${
-                  formData.media_type === 'image' 
-                    ? 'border-accent text-accent bg-accent/10' 
-                    : 'border-border text-muted-foreground hover:border-foreground'
-                }`}
-              >
-                Photo
-              </button>
-              <button
-                type="button"
-                onClick={() => setFormData({...formData, media_type: "video"})}
-                className={`p-3 border text-sm font-bold uppercase transition-colors ${
-                  formData.media_type === 'video' 
-                    ? 'border-accent text-accent bg-accent/10' 
-                    : 'border-border text-muted-foreground hover:border-foreground'
-                }`}
-              >
-                Video
-              </button>
+              <button type="button" onClick={() => setFormData({...formData, media_type: "image"})} className={`p-3 border text-sm font-bold uppercase transition-colors ${formData.media_type === 'image' ? 'border-accent text-accent bg-accent/10' : 'border-border text-muted-foreground hover:border-foreground'}`}>Photo</button>
+              <button type="button" onClick={() => setFormData({...formData, media_type: "video"})} className={`p-3 border text-sm font-bold uppercase transition-colors ${formData.media_type === 'video' ? 'border-accent text-accent bg-accent/10' : 'border-border text-muted-foreground hover:border-foreground'}`}>Video</button>
             </div>
           </div>
 
-          {/* NEW: Conditional Media Upload */}
           {formData.media_type === 'image' ? (
             <div className="md:col-span-2">
               <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Upload Program Photo (Max 5MB)</label>
-              <FileUpload 
-                bucketName="club-media" 
-                folder="programs" 
-                value={formData.photo_url} 
-                onChange={(url) => setFormData({...formData, photo_url: url})} 
-                accept="image/*"
-                maxSizeMB={5}
-              />
+              <FileUpload bucketName="club-media" folder="programs" value={formData.photo_url} onChange={(url) => setFormData({...formData, photo_url: url})} accept="image/*" maxSizeMB={5} />
             </div>
           ) : (
             <div className="md:col-span-2 space-y-4">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Upload Video File (Max 50MB)</label>
-                <FileUpload 
-                  bucketName="club-media" 
-                  folder="programs/videos" 
-                  value={formData.video_url} 
-                  onChange={(url) => setFormData({...formData, video_url: url})} 
-                  accept="video/mp4,video/webm"
-                  maxSizeMB={50}
-                />
+                <FileUpload bucketName="club-media" folder="programs/videos" value={formData.video_url} onChange={(url) => setFormData({...formData, video_url: url})} accept="video/mp4,video/webm" maxSizeMB={50} />
               </div>
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">OR Paste YouTube URL</label>
-                <input 
-                  value={formData.video_url.includes("youtube.com") || formData.video_url.includes("youtu.be") ? formData.video_url : ""} 
-                  onChange={(e) => setFormData({...formData, video_url: e.target.value})} 
-                  className="w-full bg-background border border-border p-3 text-foreground focus:outline-none focus:border-accent" 
-                  placeholder="https://youtube.com/..." 
-                />
-                <p className="text-xs text-muted-foreground mt-2">You can upload an MP4 directly above, or paste a YouTube link here.</p>
+                <input value={formData.video_url.includes("youtube.com") || formData.video_url.includes("youtu.be") ? formData.video_url : ""} onChange={(e) => setFormData({...formData, video_url: e.target.value})} className="w-full bg-background border border-border p-3 text-foreground focus:outline-none focus:border-accent" placeholder="https://youtube.com/..." />
               </div>
             </div>
           )}
 
           <div className="md:col-span-2">
             <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Description *</label>
-            <textarea required value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="w-full bg-background border border-border p-3 text-foreground focus:outline-none focus:border-accent h-32" placeholder="Describe the goals and activities of this program..." />
+            <textarea required value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className={`w-full bg-background border p-3 text-foreground focus:outline-none focus:border-accent h-32 ${errors.description ? 'border-red-500' : 'border-border'}`} placeholder="Describe the goals and activities of this program..." />
+            {errors.description && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {errors.description}</p>}
           </div>
         </div>
 
@@ -225,6 +209,17 @@ export default function EditProgramPage() {
           {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving Changes...</> : "Update Program"}
         </button>
       </form>
+    </div>
+  );
+}
+
+interface InputProps { label: string; value: string; onChange: (value: string) => void; type?: string; required?: boolean; placeholder?: string; error?: string; }
+function Input({ label, value, onChange, type = "text", required = false, placeholder = "", error }: InputProps) {
+  return (
+    <div>
+      <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">{label} {required && <span className="text-accent">*</span>}</label>
+      <input type={type} required={required} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className={`w-full bg-background border p-3 text-foreground focus:outline-none focus:border-accent transition-colors ${error ? 'border-red-500 focus:border-red-500' : 'border-border'}`} />
+      {error && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {error}</p>}
     </div>
   );
 }

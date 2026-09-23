@@ -1,6 +1,6 @@
-
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: 'class', // <-- CRITICAL: Enables class-based dark mode
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -9,15 +9,15 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        background: "#0a0a0a",
-        foreground: "#fafafa",
-        card: "#171717",
-        "card-foreground": "#fafafa",
-        muted: "#262626",
-        "muted-foreground": "#a3a3a3",
-        border: "#262626",
-        accent: "#00ff88",
-        "accent-foreground": "#0a0a0a",
+        background: "var(--color-background)",
+        foreground: "var(--color-foreground)",
+        card: "var(--color-card)",
+        "card-foreground": "var(--color-card-foreground)",
+        muted: "var(--color-muted)",
+        "muted-foreground": "var(--color-muted-foreground)",
+        border: "var(--color-border)",
+        accent: "var(--color-accent)",
+        "accent-foreground": "var(--color-accent-foreground)",
       },
       fontFamily: {
         sans: ["var(--font-sans)", "sans-serif"],

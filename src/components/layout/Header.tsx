@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Search } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import SearchModal from "@/components/ui/SearchModal";
+import ThemeToggle from "@/components/ui/ThemeToggle";
 
 export default function Header() {
   const [orgData, setOrgData] = useState({
@@ -11,6 +13,7 @@ export default function Header() {
     logo_url: ''
   });
   const [isOpen, setIsOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   useEffect(() => {
     const fetchOrganization = async () => {
@@ -25,6 +28,18 @@ export default function Header() {
       }
     };
     fetchOrganization();
+  }, []);
+
+  // Keyboard shortcut for search (Ctrl+K or Cmd+K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setIsSearchOpen(true);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
   const navLinks = [
@@ -70,9 +85,22 @@ export default function Header() {
           ))}
         </nav>
 
-        {/* Call to Action Button */}
-        <div className="hidden md:block">
-          <Link href="/donate" className="btn-primary text-sm">
+        <div className="flex items-center gap-3">
+          {/* Search Trigger Button */}
+          <button 
+            onClick={() => setIsSearchOpen(true)}
+            className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-muted/50 border border-border rounded-sm text-sm text-muted-foreground hover:border-accent hover:text-foreground transition-colors"
+          >
+            <Search className="w-4 h-4" />
+            <span className="hidden lg:inline">Search...</span>
+            <kbd className="hidden xl:inline-block px-1.5 py-0.5 text-[10px] font-sans bg-background border border-border rounded">Ctrl K</kbd>
+          </button>
+
+          {/* Dark Mode Toggle */}
+          <ThemeToggle />
+
+          {/* Call to Action Button */}
+          <Link href="/donate" className="btn-primary text-sm hidden md:inline-flex">
             Support Us
           </Link>
         </div>
@@ -100,15 +128,22 @@ export default function Header() {
               {link.name}
             </Link>
           ))}
-          <Link 
-            href="/donate" 
-            className="block w-full text-center btn-primary mt-6"
-            onClick={() => setIsOpen(false)}
-          >
-            Support Us
-          </Link>
+          
+          <div className="pt-4 border-t border-border flex items-center justify-between">
+             <ThemeToggle />
+             <Link 
+                href="/donate" 
+                className="btn-primary"
+                onClick={() => setIsOpen(false)}
+              >
+                Support Us
+              </Link>
+          </div>
         </div>
       )}
+
+      {/* Global Search Modal */}
+      <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </header>
   );
 }
