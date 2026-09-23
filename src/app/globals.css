@@ -1,86 +1,115 @@
-/* ... (keep all your existing light/dark mode and layer code above) ... */
+@import "tailwindcss";
 
-/* ==========================================
-   ENTERPRISE PRINT STYLESHEET
-   ========================================== */
+/* 1. ENABLE CLASS-BASED DARK MODE (v4 Syntax) */
+@custom-variant dark (&:is(.dark *));
+
+/* 2. DEFINE THEME UTILITIES (Replaces tailwind.config.js) */
+@theme {
+  --color-background: var(--color-background);
+  --color-foreground: var(--color-foreground);
+  --color-card: var(--color-card);
+  --color-card-foreground: var(--color-card-foreground);
+  --color-muted: var(--color-muted);
+  --color-muted-foreground: var(--color-muted-foreground);
+  --color-border: var(--color-border);
+  --color-accent: var(--color-accent);
+  --color-accent-foreground: var(--color-accent-foreground);
+
+  --font-sans: var(--font-sans), sans-serif;
+  --font-heading: var(--font-heading), sans-serif;
+
+  --animate-fade-in-up: fade-in-up 0.8s ease-out forwards;
+}
+
+/* 3. CSS VARIABLES (Light Mode Default) */
+:root {
+  --color-background: #ffffff;
+  --color-foreground: #0a0a0a;
+  --color-card: #ffffff;
+  --color-card-foreground: #0a0a0a;
+  --color-muted: #f4f4f5;
+  --color-muted-foreground: #71717a;
+  --color-border: #e4e4e7;
+  --color-accent: #00cc6a;
+  --color-accent-foreground: #ffffff;
+  
+  --font-sans: 'Inter', sans-serif;
+  --font-heading: 'Oswald', sans-serif;
+}
+
+/* 4. CSS VARIABLES (Dark Mode) */
+.dark {
+  --color-background: #0a0a0a;
+  --color-foreground: #fafafa;
+  --color-card: #171717;
+  --color-card-foreground: #fafafa;
+  --color-muted: #262626;
+  --color-muted-foreground: #a3a3a3;
+  --color-border: #262626;
+  --color-accent: #00ff88;
+  --color-accent-foreground: #0a0a0a;
+}
+
+/* 5. BASE STYLES */
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    scroll-behavior: smooth;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading;
+    letter-spacing: -0.025em;
+  }
+}
+
+/* 6. COMPONENT CLASSES */
+@layer components {
+  .section-padding {
+    @apply py-16 md:py-24 px-4 md:px-8 max-w-7xl mx-auto;
+  }
+
+  .btn-primary {
+    @apply bg-accent text-accent-foreground font-bold py-3 px-8 uppercase tracking-wider transition-all duration-300 hover:brightness-110 inline-block;
+  }
+
+  .btn-outline {
+    @apply border border-foreground text-foreground font-bold py-3 px-8 uppercase tracking-wider transition-all duration-300 hover:bg-foreground hover:text-background inline-block;
+  }
+}
+
+/* 7. ANIMATIONS */
+@keyframes fade-in-up {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* 8. PRINT STYLESHEET */
 @media print {
-  /* 1. Force Light Mode & High Contrast (Save Ink) */
   :root, .dark {
     --color-background: #ffffff !important;
     --color-foreground: #000000 !important;
     --color-card: #ffffff !important;
-    --color-card-foreground: #000000 !important;
-    --color-muted: #f4f4f5 !important;
-    --color-muted-foreground: #52525b !important;
-    --color-border: #d4d4d8 !important;
-    --color-accent: #000000 !important; /* Black instead of green for printing */
-    --color-accent-foreground: #ffffff !important;
+    --color-accent: #000000 !important;
   }
 
   body {
     background-color: white !important;
     color: black !important;
-    font-size: 12pt !important; /* Optimal for A4 reading */
+    font-size: 12pt !important;
   }
 
-  /* 2. Hide Unnecessary UI Elements */
-  header, 
-  footer, 
-  nav, 
-  button, 
-  .no-print, 
-  [aria-label="Toggle menu"],
-  [aria-label="Toggle theme"],
-  .fixed, /* Hides floating actions, modals, cookie banners */
-  .sticky {
+  header, footer, nav, button, .no-print, .fixed, .sticky {
     display: none !important;
   }
 
-  /* 3. Optimize Layout for A4 Paper */
-  @page {
-    margin: 1.5cm;
-    size: A4;
-  }
-
-  /* 4. Prevent Awkward Page Breaks */
-  tr, 
-  .bg-card, 
-  .border, 
-  img {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-  }
-
-  h1, h2, h3, h4 {
-    page-break-after: avoid !important;
-    break-after: avoid !important;
-    color: black !important;
-  }
-
-  /* 5. Clean Up Links and Images */
-  a {
-    text-decoration: none !important;
-    color: black !important;
-  }
+  @page { margin: 1.5cm; size: A4; }
   
-  a[href^="http"]:after {
-    content: " (" attr(href) ")";
-    font-size: 10pt;
-    color: #666;
-  }
-
-  img {
-    max-width: 100% !important;
-    filter: grayscale(100%) !important; /* Saves color ink */
-  }
-
-  /* 6. Remove Shadows and Heavy Borders */
-  * {
-    box-shadow: none !important;
-    text-shadow: none !important;
-  }
-
-  .border, .border-border {
-    border: 1px solid #ccc !important;
+  tr, .bg-card, .border, img {
+    page-break-inside: avoid !important;
   }
 }
