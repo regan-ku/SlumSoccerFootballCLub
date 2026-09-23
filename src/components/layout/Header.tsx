@@ -44,10 +44,11 @@ export default function Header() {
 
   const navLinks = [
     { name: 'Home', href: '/' },
+    { name: 'Players', href: '/players' }, // <-- ADDED PLAYERS
     { name: 'Teams', href: '/teams' },
     { name: 'Leagues', href: '/leagues' },
+    { name: 'Competitions', href: '/competitions' },
     { name: 'Programs', href: '/programs' },
-      { name: 'Competitions', href: '/competitions' }, // <-- ADDED
     { name: 'Gallery', href: '/gallery' },
     { name: 'About', href: '/about' },
   ];
@@ -55,8 +56,9 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="section-padding flex h-20 items-center justify-between !px-4 md:!px-8">
-        {/* Logo / Club Name */}
-        <Link href="/" className="flex items-center space-x-3 group">
+        
+        {/* 1. Logo / Club Name (Prevent shrinking) */}
+        <Link href="/" className="flex items-center space-x-3 group flex-shrink-0">
           {orgData.logo_url ? (
             <img 
               src={orgData.logo_url} 
@@ -73,27 +75,29 @@ export default function Header() {
           </span>
         </Link>
 
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center space-x-8">
+        {/* 2. Desktop Navigation (Clean spacing, no wrapping) */}
+        <nav className="hidden xl:flex items-center gap-6">
           {navLinks.map((link) => (
             <Link 
               key={link.name} 
               href={link.href} 
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-accent uppercase tracking-wide"
+              className="text-sm font-medium text-muted-foreground transition-colors hover:text-accent uppercase tracking-wide whitespace-nowrap"
             >
               {link.name}
             </Link>
           ))}
         </nav>
 
-        <div className="flex items-center gap-3">
+        {/* 3. Right Side Actions (Neatly grouped) */}
+        <div className="flex items-center gap-3 md:gap-4">
           {/* Search Trigger Button */}
           <button 
             onClick={() => setIsSearchOpen(true)}
             className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-muted/50 border border-border rounded-sm text-sm text-muted-foreground hover:border-accent hover:text-foreground transition-colors"
+            aria-label="Open search"
           >
             <Search className="w-4 h-4" />
-            <span className="hidden lg:inline">Search...</span>
+            <span className="hidden lg:inline">Search</span>
             <kbd className="hidden xl:inline-block px-1.5 py-0.5 text-[10px] font-sans bg-background border border-border rounded">Ctrl K</kbd>
           </button>
 
@@ -101,44 +105,48 @@ export default function Header() {
           <ThemeToggle />
 
           {/* Call to Action Button */}
-          <Link href="/donate" className="btn-primary text-sm hidden md:inline-flex">
+          <Link href="/donate" className="btn-primary text-sm hidden sm:inline-flex whitespace-nowrap">
             Support Us
           </Link>
-        </div>
 
-        {/* Mobile Menu Button */}
-        <button 
-          className="md:hidden text-foreground p-2" 
-          onClick={() => setIsOpen(!isOpen)}
-          aria-label="Toggle menu"
-        >
-          {isOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
+          {/* Mobile Menu Button (Only shows when desktop nav is hidden) */}
+          <button 
+            className="xl:hidden text-foreground p-2" 
+            onClick={() => setIsOpen(!isOpen)}
+            aria-label="Toggle menu"
+          >
+            {isOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
       </div>
 
-      {/* Mobile Navigation Dropdown */}
+      {/* 4. Mobile Navigation Dropdown */}
       {isOpen && (
-        <div className="md:hidden border-t border-border bg-background px-4 py-6 space-y-4 animate-fade-in-up">
+        <div className="xl:hidden border-t border-border bg-background px-4 py-6 space-y-4 animate-fade-in-up">
           {navLinks.map((link) => (
             <Link 
               key={link.name} 
               href={link.href} 
-              className="block text-lg font-medium text-foreground uppercase tracking-wide hover:text-accent transition-colors"
+              className="block text-lg font-medium text-foreground uppercase tracking-wide hover:text-accent transition-colors py-2"
               onClick={() => setIsOpen(false)}
             >
               {link.name}
             </Link>
           ))}
           
-          <div className="pt-4 border-t border-border flex items-center justify-between">
-             <ThemeToggle />
+          {/* Mobile Actions */}
+          <div className="pt-6 border-t border-border flex flex-col gap-4">
              <Link 
                 href="/donate" 
-                className="btn-primary"
+                className="btn-primary w-full text-center"
                 onClick={() => setIsOpen(false)}
               >
                 Support Us
               </Link>
+              <div className="flex items-center justify-center gap-4 pt-2">
+                 <span className="text-sm text-muted-foreground">Theme:</span>
+                 <ThemeToggle />
+              </div>
           </div>
         </div>
       )}

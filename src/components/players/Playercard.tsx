@@ -11,9 +11,10 @@ export interface PlayerCardProps {
     last_name: string;
     photo_url?: string | null;
     position?: string | null;
-    jersey_number?: number | null;
+    jersey_number?: number | string | null;
     is_captain?: boolean;
     is_vice_captain?: boolean;
+    age_groups?: { code: string; name: string } | null; // Added for squad info
   };
 }
 
@@ -63,6 +64,14 @@ export default function PlayerCard({ player }: PlayerCardProps) {
         <h3 className="font-heading text-lg font-bold uppercase leading-tight mb-1 text-foreground group-hover:text-accent transition-colors">
           {player.first_name} {player.last_name}
         </h3>
+        
+        {/* Squad Info */}
+        {player.age_groups && (
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mt-1">
+            {player.age_groups.code} Squad
+          </p>
+        )}
+
         {(player.is_captain || player.is_vice_captain) && (
           <p className="text-xs font-bold text-accent uppercase tracking-wider mt-1">
             {player.is_captain ? "Team Captain" : "Vice Captain"}
