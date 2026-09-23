@@ -47,6 +47,7 @@ export default function Header() {
     { name: 'Teams', href: '/teams' },
     { name: 'Leagues', href: '/leagues' },
     { name: 'Programs', href: '/programs' },
+      { name: 'Competitions', href: '/competitions' }, // <-- ADDED
     { name: 'Gallery', href: '/gallery' },
     { name: 'About', href: '/about' },
   ];

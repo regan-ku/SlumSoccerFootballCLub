@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { 
   Users, Trophy, Calendar, Image, LogOut, Shield, 
-  Briefcase, Target, Newspaper, Settings, Menu, X, Plus
+  Briefcase, Target, Newspaper, Settings, Menu, X, Plus, Award // <-- Added Award icon
 } from "lucide-react";
 
 // Grouped Navigation Structure
@@ -15,8 +15,8 @@ const navGroups = [
   {
     title: "Club Management",
     items: [
-      { name: "Players", href: "/admin/club/players", icon: <Users className="w-4 h-4" /> }, // <-- FIXED: Points to list, not 'new'
-      { name: "Teams", href: "/admin/club/teams", icon: <Shield className="w-4 h-4" /> },    // <-- FIXED: Removed trailing slash
+      { name: "Players", href: "/admin/club/players", icon: <Users className="w-4 h-4" /> },
+      { name: "Teams", href: "/admin/club/teams", icon: <Shield className="w-4 h-4" /> },
       { name: "Staff", href: "/admin/club/staff", icon: <Briefcase className="w-4 h-4" /> },
       { name: "Programs", href: "/admin/club/programs", icon: <Target className="w-4 h-4" /> },
     ]
@@ -24,6 +24,7 @@ const navGroups = [
   {
     title: "League Operations",
     items: [
+      { name: "Competitions", href: "/admin/league/competitions", icon: <Award className="w-4 h-4" /> }, // <-- ADDED HERE
       { name: "League Teams", href: "/admin/league/teams", icon: <Trophy className="w-4 h-4" /> },
       { name: "Divisions", href: "/admin/league/divisions", icon: <Shield className="w-4 h-4" /> },
       { name: "Matches & Results", href: "/admin/league/matches", icon: <Calendar className="w-4 h-4" /> },
@@ -103,8 +104,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Link href="/admin/club/players/new" className="flex items-center justify-center gap-1 bg-accent/10 text-accent text-[11px] font-bold uppercase py-2 rounded-sm hover:bg-accent/20 transition-colors" onClick={() => setIsMobileMenuOpen(false)}>
               <Plus className="w-3 h-3" /> Player
             </Link>
-            <Link href="/admin/league/matches" className="flex items-center justify-center gap-1 bg-muted text-muted-foreground text-[11px] font-bold uppercase py-2 rounded-sm hover:bg-muted/80 transition-colors" onClick={() => setIsMobileMenuOpen(false)}>
-              <Calendar className="w-3 h-3" /> Match
+            <Link href="/admin/league/competitions" className="flex items-center justify-center gap-1 bg-muted text-muted-foreground text-[11px] font-bold uppercase py-2 rounded-sm hover:bg-muted/80 transition-colors" onClick={() => setIsMobileMenuOpen(false)}>
+              <Award className="w-3 h-3" /> Comp
             </Link>
           </div>
         </div>
