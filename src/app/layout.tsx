@@ -5,7 +5,7 @@ import "./globals.css";
 
 // Layout Components
 import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer"; // <-- Fixed casing to match standard convention
+import Footer from "@/components/layout/Footer"; 
 
 // UI Enhancements
 import CookieBanner from "@/components/ui/CookieBanner";
