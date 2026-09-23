@@ -5,7 +5,7 @@ import "./globals.css";
 
 // Layout Components
 import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer"; 
+import Footer from "@/components/layout/footer"; 
 
 // UI Enhancements
 import CookieBanner from "@/components/ui/CookieBanner";
