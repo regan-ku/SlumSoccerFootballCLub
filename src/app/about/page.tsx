@@ -100,7 +100,7 @@ export default function AboutPage() {
       <section className="section-padding bg-background">
         <div className="max-w-6xl mx-auto">
           <h2 className="font-heading text-3xl md:text-4xl font-bold uppercase text-center mb-4">
-            Meet Our <span className="text-accent">Coaches</span>
+            Meet Our <span className="text-accent">Staffs</span>
           </h2>
           <p className="text-muted-foreground text-center max-w-2xl mx-auto mb-12">
             Dedicated professionals committed to developing young talent on and off the pitch.

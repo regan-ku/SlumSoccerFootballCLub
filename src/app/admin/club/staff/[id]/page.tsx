@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ArrowLeft, Loader2, AlertCircle } from "lucide-react";
 import FileUpload from "@/components/ui/FileUpload";
-import { staffSchema, type StaffFormData } from "@/lib/validations/staff"; // <-- IMPORT ZOD
+import { staffSchema, type StaffFormData } from "@/lib/validations/staff";
 
 const ROLES = ["head_coach", "assistant_coach", "goalkeeping_coach", "life_skills_instructor", "program_coordinator", "admin"];
 
@@ -17,7 +17,7 @@ export default function EditStaffPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState("");
-  const [errors, setErrors] = useState<Record<string, string>>({}); // <-- NEW: Error state
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [formData, setFormData] = useState<StaffFormData>({
     full_name: "", role: "head_coach", email: "", phone: "", 
@@ -62,11 +62,10 @@ export default function EditStaffPage() {
       return;
     }
 
-    // 2. SUBMIT
+    // 2. SUBMIT (Removed updated_at to match database schema)
     const supabase = createClient();
     const { error } = await supabase.from("staff").update({
-      ...result.data,
-      updated_at: new Date().toISOString()
+      ...result.data
     }).eq("id", staffId);
 
     setSaving(false);
