@@ -9,92 +9,110 @@ import PlayerCard from "@/components/players/Playercard"; // Ensure capital 'C'
 
 export default function TeamDetailPage() {
   const params = useParams();
-  const teamId = params.id as string;
+  const rawTeamId = params.id as string;
 
   const [team, setTeam] = useState<any>(null);
   const [players, setPlayers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [orgName, setOrgName] = useState("Slum Stars FC");
 
   useEffect(() => {
     const fetchData = async () => {
       const supabase = createClient();
 
-      // 1. Fetch Team Details (Added team_photo_url)
-      const { data: teamData } = await supabase
-        .from("internal_teams")
+      // 1. Get Org Name for dynamic team naming
+      const { data: orgData } = await supabase.from("organization").select("name").limit(1).single();
+      if (orgData) setOrgName(orgData.name || "Slum Stars FC");
+
+      // 2. Parse the dynamic team ID (e.g., "12345-male" or "12345_female")
+      const [ageGroupId, gender] = rawTeamId.split("_");
+
+      if (!ageGroupId || !gender) {
+        setLoading(false);
+        return;
+      }
+
+      // 3. Fetch Age Group Details and Gender-Specific Coaches
+      const { data: agData } = await supabase
+        .from("age_groups")
         .select(`
-          name,
-          team_photo_url,
-          age_groups (code, name),
-          staff!head_coach_id (full_name)
+          id, code, name,
+          male_coach:staff!male_coach_id(full_name),
+          female_coach:staff!female_coach_id(full_name)
         `)
-        .eq("id", teamId)
+        .eq("id", ageGroupId)
         .single();
 
-      if (teamData) {
-        setTeam(teamData);
+      if (agData) {
+        // Safely handle if Supabase returns the coach relationship as an array or a single object
+        const maleCoach = Array.isArray(agData.male_coach) ? agData.male_coach[0] : agData.male_coach;
+        const femaleCoach = Array.isArray(agData.female_coach) ? agData.female_coach[0] : agData.female_coach;
 
-        // 2. SECURELY Fetch Players using the Day 1 Security Function!
-        const { data: playersData } = await supabase.rpc("get_public_players");
+        const coachName = gender === "male" 
+          ? maleCoach?.full_name 
+          : femaleCoach?.full_name;
+
+        setTeam({
+          id: rawTeamId,
+          name: `${orgData?.name || "Slum Stars FC"} ${agData.code} ${gender === "male" ? "Boys" : "Girls"}`,
+          age_group_code: agData.code,
+          age_group_name: agData.name,
+          coach_name: coachName || "TBA",
+          gender: gender
+        });
+
+        // 4. Fetch Players for this specific age group and gender
+        const { data: playersData } = await supabase
+          .from("internal_players")
+          .select("id, first_name, last_name, position, jersey_number, photo_url, date_of_birth")
+          .eq("current_age_group_id", ageGroupId)
+          .eq("gender", gender)
+          .eq("is_active", true)
+          .order("jersey_number", { ascending: true, nullsFirst: false });
 
         if (playersData) {
-          const ageGroupCode = (teamData.age_groups as any)?.code;
-          
-          const teamPlayers = playersData.filter(
-            (p: any) => p.age_group_code === ageGroupCode
-          );
-          setPlayers(teamPlayers);
+          setPlayers(playersData);
         }
       }
       setLoading(false);
     };
 
     fetchData();
-  }, [teamId]);
+  }, [rawTeamId]);
 
   if (loading) {
-    return <div className="section-padding min-h-screen text-center text-muted-foreground pt-20">Loading team details...</div>;
+    return <div className="section-padding min-h-screen text-center text-muted-foreground pt-20">Loading squad details...</div>;
   }
 
   if (!team) {
-    return <div className="section-padding min-h-screen text-center text-muted-foreground pt-20">Team not found.</div>;
+    return <div className="section-padding min-h-screen text-center text-muted-foreground pt-20">Squad not found.</div>;
   }
 
   return (
     <div className="section-padding min-h-screen">
       <Link href="/teams" className="inline-flex items-center text-muted-foreground hover:text-accent mb-8 transition-colors">
-        <ChevronLeft className="w-4 h-4 mr-1" /> Back to Teams
+        <ChevronLeft className="w-4 h-4 mr-1" /> Back to Squads
       </Link>
 
-      {/* Team Header with Photo */}
+      {/* Squad Header */}
       <div className="bg-card border border-border p-8 md:p-12 mb-12">
         <div className="flex flex-col md:flex-row gap-8 md:gap-12">
           
-          {/* Team Photo / Logo Area */}
-          <div className="w-full md:w-1/3 aspect-square bg-muted rounded-sm overflow-hidden border border-border flex-shrink-0">
-            {(team as any).team_photo_url ? (
-              <img 
-                src={(team as any).team_photo_url} 
-                alt={team.name} 
-                className="w-full h-full object-cover" 
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <Shield className="w-24 h-24 text-muted-foreground" />
-              </div>
-            )}
+          {/* Squad Visual Area */}
+          <div className="w-full md:w-1/3 aspect-square bg-muted rounded-sm overflow-hidden border border-border flex-shrink-0 flex items-center justify-center">
+            <Shield className={`w-24 h-24 ${team.gender === 'male' ? 'text-blue-500/50' : 'text-pink-500/50'}`} />
           </div>
 
-          {/* Team Info Area */}
+          {/* Squad Info Area */}
           <div className="flex-1 flex flex-col justify-center">
             <span className="bg-muted text-muted-foreground text-xs font-bold px-3 py-1 uppercase tracking-wider mb-4 inline-block w-fit">
-              {(team.age_groups as any)?.code || "N/A"} | {(team.age_groups as any)?.name || "Unknown"}
+              {team.age_group_code} | {team.gender === 'male' ? "Boys" : "Girls"}
             </span>
             <h1 className="font-heading text-4xl md:text-5xl lg:text-6xl font-bold uppercase tracking-tight mb-4">
               {team.name}
             </h1>
             <p className="text-muted-foreground text-lg mb-6">
-              Head Coach: <span className="text-foreground font-medium">{(team.staff as any)?.full_name || "TBA"}</span>
+              Head Coach: <span className="text-foreground font-medium">{team.coach_name}</span>
             </p>
             
             <div className="bg-background border border-border p-6 text-center md:text-left inline-block w-fit">

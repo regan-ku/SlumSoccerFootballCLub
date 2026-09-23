@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { 
   Users, Trophy, Calendar, Image, LogOut, Shield, 
-  Briefcase, Target, Newspaper, Settings, Menu, X, Plus, Award // <-- Added Award icon
+  Briefcase, Target, Newspaper, Settings, Menu, X, Plus, Award 
 } from "lucide-react";
 
 // Grouped Navigation Structure
@@ -16,7 +16,7 @@ const navGroups = [
     title: "Club Management",
     items: [
       { name: "Players", href: "/admin/club/players", icon: <Users className="w-4 h-4" /> },
-      { name: "Teams", href: "/admin/club/teams", icon: <Shield className="w-4 h-4" /> },
+      { name: "Internal Squads", href: "/admin/club/squads", icon: <Shield className="w-4 h-4" /> }, // <-- UPDATED
       { name: "Staff", href: "/admin/club/staff", icon: <Briefcase className="w-4 h-4" /> },
       { name: "Programs", href: "/admin/club/programs", icon: <Target className="w-4 h-4" /> },
     ]
@@ -24,7 +24,7 @@ const navGroups = [
   {
     title: "League Operations",
     items: [
-      { name: "Competitions", href: "/admin/league/competitions", icon: <Award className="w-4 h-4" /> }, // <-- ADDED HERE
+      { name: "Competitions", href: "/admin/league/competitions", icon: <Award className="w-4 h-4" /> },
       { name: "League Teams", href: "/admin/league/teams", icon: <Trophy className="w-4 h-4" /> },
       { name: "Divisions", href: "/admin/league/divisions", icon: <Shield className="w-4 h-4" /> },
       { name: "Matches & Results", href: "/admin/league/matches", icon: <Calendar className="w-4 h-4" /> },

@@ -3,58 +3,92 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { Shield, Users } from "lucide-react";
+import { Shield, Users, UserPlus } from "lucide-react";
 
 const AGE_GROUPS = ["All", "U7", "U10", "U12", "U14", "U16", "U18", "U20", "SR"];
 
 export default function TeamsPage() {
-  const [teams, setTeams] = useState<any[]>([]);
+  const [squads, setSquads] = useState<any[]>([]);
   const [filter, setFilter] = useState("All");
   const [loading, setLoading] = useState(true);
+  const [orgName, setOrgName] = useState("Slum Stars FC");
 
   useEffect(() => {
-    const fetchTeams = async () => {
+    const fetchData = async () => {
       const supabase = createClient();
       
-      // Fetch teams joined with age groups, staff, AND team_photo_url
-      const { data, error } = await supabase
-        .from("internal_teams")
+      // 1. Get Org Name for dynamic team naming
+      const { data: orgData } = await supabase.from("organization").select("name").limit(1).single();
+      if (orgData) setOrgName(orgData.name || "Slum Stars FC");
+
+      // 2. Fetch Age Groups with their assigned coaches
+      const { data: agData, error: agError } = await supabase
+        .from("age_groups")
         .select(`
-          id,
-          name,
-          team_photo_url,
-          is_active,
-          age_groups (code),
-          staff!head_coach_id (full_name)
+          id, code, name, display_order,
+          male_coach:staff!male_coach_id(full_name),
+          female_coach:staff!female_coach_id(full_name)
         `)
+        .eq("is_active", true)
+        .order("display_order", { ascending: true });
+
+      // 3. Fetch Player Counts per Age Group + Gender
+      const { data: playersData } = await supabase
+        .from("internal_players")
+        .select("current_age_group_id, gender")
         .eq("is_active", true);
 
-      if (!error && data) {
-        const formattedTeams = data.map((team: any) => ({
-          id: team.id,
-          name: team.name,
-          team_photo_url: team.team_photo_url,
-          age_group_code: team.age_groups?.code || "SR",
-          coach_name: team.staff?.full_name || "TBA",
-        }));
-        setTeams(formattedTeams);
+      if (!agError && agData) {
+        const counts: Record<string, number> = {};
+        if (playersData) {
+          playersData.forEach((p: any) => {
+            const key = `${p.current_age_group_id}_${p.gender}`;
+            counts[key] = (counts[key] || 0) + 1;
+          });
+        }
+
+        // Generate dynamic squads (2 per age group: Boys & Girls)
+        const formattedSquads = agData.flatMap((ag: any) => [
+          {
+            id: `${ag.id}_male`,
+            name: `${orgData?.name || "Slum Stars FC"} ${ag.code} Boys`,
+            age_group_code: ag.code,
+            gender: "male",
+            coach_name: ag.male_coach?.full_name || "TBA",
+            player_count: counts[`${ag.id}_male`] || 0,
+            display_order: ag.display_order
+          },
+          {
+            id: `${ag.id}_female`,
+            name: `${orgData?.name || "Slum Stars FC"} ${ag.code} Girls`,
+            age_group_code: ag.code,
+            gender: "female",
+            coach_name: ag.female_coach?.full_name || "TBA",
+            player_count: counts[`${ag.id}_female`] || 0,
+            display_order: ag.display_order
+          }
+        ]);
+
+        // Sort by display order
+        formattedSquads.sort((a, b) => a.display_order - b.display_order);
+        setSquads(formattedSquads);
       }
       setLoading(false);
     };
 
-    fetchTeams();
+    fetchData();
   }, []);
 
-  const filteredTeams = filter === "All" 
-    ? teams 
-    : teams.filter((team) => team.age_group_code === filter);
+  const filteredSquads = filter === "All" 
+    ? squads 
+    : squads.filter((squad) => squad.age_group_code === filter);
 
   return (
     <div className="section-padding min-h-screen">
       {/* Header */}
       <div className="text-center mb-12">
         <h1 className="font-heading text-4xl md:text-6xl font-bold uppercase tracking-tight mb-4">
-          Our <span className="text-accent">Teams</span>
+          Our <span className="text-accent">Squads</span>
         </h1>
         <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
           From grassroots U7s to our Senior squad, meet the teams representing our community with pride and discipline.
@@ -78,49 +112,42 @@ export default function TeamsPage() {
         ))}
       </div>
 
-      {/* Teams Grid */}
+      {/* Squads Grid */}
       {loading ? (
-        <div className="text-center text-muted-foreground py-20">Loading teams...</div>
-      ) : filteredTeams.length === 0 ? (
+        <div className="text-center text-muted-foreground py-20">Loading squads...</div>
+      ) : filteredSquads.length === 0 ? (
         <div className="text-center text-muted-foreground py-20">
-          No teams found for this age group yet.
+          No squads found for this age group yet.
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredTeams.map((team) => (
+          {filteredSquads.map((squad) => (
             <Link 
-              key={team.id} 
-              href={`/teams/${team.id}`}
+              key={squad.id} 
+              href={`/teams/${squad.id}`} 
               className="group bg-card border border-border overflow-hidden hover:border-accent transition-all duration-300 flex flex-col"
             >
-              {/* Team Photo Area */}
-              <div className="aspect-video bg-muted relative overflow-hidden">
-                {team.team_photo_url ? (
-                  <img 
-                    src={team.team_photo_url} 
-                    alt={team.name} 
-                    className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" 
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Shield className="w-12 h-12 text-muted-foreground" />
-                  </div>
-                )}
+              {/* Squad Visual Area */}
+              <div className="aspect-video bg-muted relative overflow-hidden flex items-center justify-center">
+                <Shield className={`w-16 h-16 ${squad.gender === 'male' ? 'text-blue-500/50' : 'text-pink-500/50'}`} />
                 <div className="absolute top-3 left-3">
                   <span className="bg-background/80 backdrop-blur-sm text-foreground text-xs font-bold px-2 py-1 uppercase tracking-wider rounded-sm">
-                    {team.age_group_code}
+                    {squad.age_group_code} {squad.gender === 'male' ? 'Boys' : 'Girls'}
                   </span>
                 </div>
               </div>
               
               <div className="p-6 flex flex-col flex-grow">
-                <h3 className="font-heading text-2xl font-bold uppercase mb-2 group-hover:text-accent transition-colors">
-                  {team.name}
+                <h3 className="font-heading text-xl font-bold uppercase mb-2 group-hover:text-accent transition-colors">
+                  {squad.name}
                 </h3>
                 
                 <div className="mt-auto space-y-2 text-sm text-muted-foreground">
                   <p className="flex items-center gap-2">
-                    <Users className="w-4 h-4" /> Head Coach: {team.coach_name}
+                    <Users className="w-4 h-4" /> Head Coach: {squad.coach_name}
+                  </p>
+                  <p className="flex items-center gap-2">
+                    <UserPlus className="w-4 h-4" /> {squad.player_count} Active Players
                   </p>
                 </div>
               </div>
