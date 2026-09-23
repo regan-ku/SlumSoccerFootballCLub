@@ -5,17 +5,10 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Shield, Users } from "lucide-react";
 
-// Placeholder data in case the database is empty
-const PLACEHOLDER_TEAMS = [
-  { id: "1", name: "Slum Stars U10", age_group_code: "U10", coach_name: "Coach John", player_count: 15 },
-  { id: "2", name: "Slum Stars U14", age_group_code: "U14", coach_name: "Coach Sarah", player_count: 18 },
-  { id: "3", name: "Slum Stars Senior", age_group_code: "SR", coach_name: "Coach David", player_count: 22 },
-];
-
 const AGE_GROUPS = ["All", "U7", "U10", "U12", "U14", "U16", "U18", "U20", "SR"];
 
 export default function TeamsPage() {
-  const [teams, setTeams] = useState<any[]>(PLACEHOLDER_TEAMS);
+  const [teams, setTeams] = useState<any[]>([]);
   const [filter, setFilter] = useState("All");
   const [loading, setLoading] = useState(true);
 
@@ -23,12 +16,13 @@ export default function TeamsPage() {
     const fetchTeams = async () => {
       const supabase = createClient();
       
-      // Fetch teams joined with age groups and staff (for coach name)
+      // Fetch teams joined with age groups, staff, AND team_photo_url
       const { data, error } = await supabase
         .from("internal_teams")
         .select(`
           id,
           name,
+          team_photo_url,
           is_active,
           age_groups (code),
           staff!head_coach_id (full_name)
@@ -39,9 +33,9 @@ export default function TeamsPage() {
         const formattedTeams = data.map((team: any) => ({
           id: team.id,
           name: team.name,
+          team_photo_url: team.team_photo_url,
           age_group_code: team.age_groups?.code || "SR",
           coach_name: team.staff?.full_name || "TBA",
-          player_count: 0, // We will add player counting in a later optimization
         }));
         setTeams(formattedTeams);
       }
@@ -97,23 +91,38 @@ export default function TeamsPage() {
             <Link 
               key={team.id} 
               href={`/teams/${team.id}`}
-              className="group bg-card border border-border p-6 hover:border-accent transition-all duration-300 flex flex-col"
+              className="group bg-card border border-border overflow-hidden hover:border-accent transition-all duration-300 flex flex-col"
             >
-              <div className="flex items-start justify-between mb-4">
-                <span className="bg-muted text-muted-foreground text-xs font-bold px-2 py-1 uppercase tracking-wider">
-                  {team.age_group_code}
-                </span>
-                <Shield className="w-6 h-6 text-muted-foreground group-hover:text-accent transition-colors" />
+              {/* Team Photo Area */}
+              <div className="aspect-video bg-muted relative overflow-hidden">
+                {team.team_photo_url ? (
+                  <img 
+                    src={team.team_photo_url} 
+                    alt={team.name} 
+                    className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" 
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Shield className="w-12 h-12 text-muted-foreground" />
+                  </div>
+                )}
+                <div className="absolute top-3 left-3">
+                  <span className="bg-background/80 backdrop-blur-sm text-foreground text-xs font-bold px-2 py-1 uppercase tracking-wider rounded-sm">
+                    {team.age_group_code}
+                  </span>
+                </div>
               </div>
               
-              <h3 className="font-heading text-2xl font-bold uppercase mb-2 group-hover:text-accent transition-colors">
-                {team.name}
-              </h3>
-              
-              <div className="mt-auto space-y-2 text-sm text-muted-foreground">
-                <p className="flex items-center gap-2">
-                  <Users className="w-4 h-4" /> Head Coach: {team.coach_name}
-                </p>
+              <div className="p-6 flex flex-col flex-grow">
+                <h3 className="font-heading text-2xl font-bold uppercase mb-2 group-hover:text-accent transition-colors">
+                  {team.name}
+                </h3>
+                
+                <div className="mt-auto space-y-2 text-sm text-muted-foreground">
+                  <p className="flex items-center gap-2">
+                    <Users className="w-4 h-4" /> Head Coach: {team.coach_name}
+                  </p>
+                </div>
               </div>
             </Link>
           ))}

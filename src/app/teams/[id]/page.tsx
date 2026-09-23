@@ -19,11 +19,12 @@ export default function TeamDetailPage() {
     const fetchData = async () => {
       const supabase = createClient();
 
-      // 1. Fetch Team Details
+      // 1. Fetch Team Details (Added team_photo_url)
       const { data: teamData } = await supabase
         .from("internal_teams")
         .select(`
           name,
+          team_photo_url,
           age_groups (code, name),
           staff!head_coach_id (full_name)
         `)
@@ -37,10 +38,8 @@ export default function TeamDetailPage() {
         const { data: playersData } = await supabase.rpc("get_public_players");
 
         if (playersData) {
-          // Cast to 'any' to bypass TS strictness on nested Supabase array returns
           const ageGroupCode = (teamData.age_groups as any)?.code;
           
-          // Filter the public players to only show those in this team's age group
           const teamPlayers = playersData.filter(
             (p: any) => p.age_group_code === ageGroupCode
           );
@@ -67,23 +66,41 @@ export default function TeamDetailPage() {
         <ChevronLeft className="w-4 h-4 mr-1" /> Back to Teams
       </Link>
 
-      {/* Team Header */}
+      {/* Team Header with Photo */}
       <div className="bg-card border border-border p-8 md:p-12 mb-12">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div>
-            <span className="bg-muted text-muted-foreground text-xs font-bold px-3 py-1 uppercase tracking-wider mb-4 inline-block">
+        <div className="flex flex-col md:flex-row gap-8 md:gap-12">
+          
+          {/* Team Photo / Logo Area */}
+          <div className="w-full md:w-1/3 aspect-square bg-muted rounded-sm overflow-hidden border border-border flex-shrink-0">
+            {(team as any).team_photo_url ? (
+              <img 
+                src={(team as any).team_photo_url} 
+                alt={team.name} 
+                className="w-full h-full object-cover" 
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <Shield className="w-24 h-24 text-muted-foreground" />
+              </div>
+            )}
+          </div>
+
+          {/* Team Info Area */}
+          <div className="flex-1 flex flex-col justify-center">
+            <span className="bg-muted text-muted-foreground text-xs font-bold px-3 py-1 uppercase tracking-wider mb-4 inline-block w-fit">
               {(team.age_groups as any)?.code || "N/A"} | {(team.age_groups as any)?.name || "Unknown"}
             </span>
-            <h1 className="font-heading text-4xl md:text-6xl font-bold uppercase tracking-tight mb-2">
+            <h1 className="font-heading text-4xl md:text-5xl lg:text-6xl font-bold uppercase tracking-tight mb-4">
               {team.name}
             </h1>
-            <p className="text-muted-foreground text-lg">
+            <p className="text-muted-foreground text-lg mb-6">
               Head Coach: <span className="text-foreground font-medium">{(team.staff as any)?.full_name || "TBA"}</span>
             </p>
-          </div>
-          <div className="bg-background border border-border p-6 text-center min-w-[150px]">
-            <p className="text-muted-foreground text-sm uppercase tracking-widest mb-1">Squad Size</p>
-            <p className="font-heading text-4xl font-bold text-accent">{players.length}</p>
+            
+            <div className="bg-background border border-border p-6 text-center md:text-left inline-block w-fit">
+              <p className="text-muted-foreground text-sm uppercase tracking-widest mb-1">Squad Size</p>
+              <p className="font-heading text-4xl font-bold text-accent">{players.length} Players</p>
+            </div>
           </div>
         </div>
       </div>

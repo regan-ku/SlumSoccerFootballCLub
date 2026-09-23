@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import FileUpload from "@/components/ui/FileUpload"; // <-- IMPORT ADDED
 
 export default function EditTeamPage() {
   const router = useRouter();
@@ -19,7 +20,7 @@ export default function EditTeamPage() {
   const [success, setSuccess] = useState("");
 
   const [formData, setFormData] = useState({
-    name: "", age_group_id: "", head_coach_id: "", captain_id: ""
+    name: "", age_group_id: "", head_coach_id: "", captain_id: "", team_photo_url: "" // <-- ADDED team_photo_url
   });
 
   useEffect(() => {
@@ -46,7 +47,8 @@ export default function EditTeamPage() {
           name: teamData.name || "",
           age_group_id: teamData.age_group_id || "",
           head_coach_id: teamData.head_coach_id || "",
-          captain_id: teamData.captain_id || ""
+          captain_id: teamData.captain_id || "",
+          team_photo_url: teamData.team_photo_url || "" // <-- FETCH team_photo_url
         });
       }
       setLoading(false);
@@ -114,6 +116,20 @@ export default function EditTeamPage() {
       {success && <div className="bg-accent/10 border border-accent text-accent p-4 font-bold uppercase text-sm">{success}</div>}
 
       <form onSubmit={handleSubmit} className="bg-card border border-border p-8 space-y-6">
+        
+        {/* NEW: TEAM PHOTO UPLOAD */}
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Team Photo / Logo (Max 5MB)</label>
+          <FileUpload 
+            bucketName="club-media" 
+            folder="teams" 
+            value={formData.team_photo_url} 
+            onChange={(url) => setFormData({...formData, team_photo_url: url})} 
+            accept="image/*"
+            maxSizeMB={5}
+          />
+        </div>
+
         <div>
           <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Team Name *</label>
           <input required value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full bg-background border border-border p-3 text-foreground focus:outline-none focus:border-accent" />

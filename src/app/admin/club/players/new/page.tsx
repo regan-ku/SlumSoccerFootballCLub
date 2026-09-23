@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import FileUpload from "@/components/ui/FileUpload"; // <-- IMPORT ADDED
 
-// 1. STRICT TYPE DEFINITION FOR INPUT COMPONENT
 interface InputProps {
   label: string;
   value: string;
@@ -23,7 +23,7 @@ export default function AddPlayerPage() {
 
   const [formData, setFormData] = useState({
     first_name: "", last_name: "", date_of_birth: "", gender: "male",
-    position: "", jersey_number: "",
+    position: "", jersey_number: "", photo_url: "", // <-- photo_url ADDED
     guardian_name: "", guardian_phone: "", guardian_email: "",
     medical_conditions: "", allergies: "", school: "", grade_level: "",
     current_age_group_id: ""
@@ -82,12 +82,8 @@ export default function AddPlayerPage() {
       </button>
 
       <div>
-        <h1 className="font-heading text-3xl font-bold uppercase tracking-tight text-foreground">
-          Register New Player
-        </h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Fill in the details below. The Age Group will be calculated automatically from the Date of Birth.
-        </p>
+        <h1 className="font-heading text-3xl font-bold uppercase tracking-tight text-foreground">Register New Player</h1>
+        <p className="text-muted-foreground text-sm mt-1">Fill in the details below. The Age Group will be calculated automatically from the Date of Birth.</p>
       </div>
 
       {success && <div className="bg-accent/10 border border-accent text-accent p-4 font-bold uppercase text-sm">{success}</div>}
@@ -112,6 +108,19 @@ export default function AddPlayerPage() {
                 <option value="male">Male</option>
                 <option value="female">Female</option>
               </select>
+            </div>
+
+            {/* NEW: FILE UPLOAD COMPONENT */}
+            <div className="md:col-span-2">
+              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Player Photo</label>
+              <FileUpload 
+                bucketName="club-media" 
+                folder="players" 
+                value={formData.photo_url} 
+                onChange={(url) => setFormData({...formData, photo_url: url})} 
+                accept="image/*"
+                maxSizeMB={5}
+              />
             </div>
 
             <Input label="Position" value={formData.position} onChange={(v) => setFormData({...formData, position: v})} placeholder="e.g. Midfielder" />
@@ -151,21 +160,14 @@ export default function AddPlayerPage() {
   );
 }
 
-// 2. STRICTLY TYPED REUSABLE INPUT COMPONENT
 function Input({ label, value, onChange, type = "text", required = false, placeholder = "" }: InputProps) {
   return (
     <div>
       <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
         {label} {required && <span className="text-accent">*</span>}
       </label>
-      <input 
-        type={type} 
-        required={required} 
-        value={value} 
-        onChange={(e) => onChange(e.target.value)} 
-        placeholder={placeholder}
-        className="w-full bg-background border border-border p-3 text-foreground focus:outline-none focus:border-accent transition-colors" 
-      />
+      <input type={type} required={required} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
+        className="w-full bg-background border border-border p-3 text-foreground focus:outline-none focus:border-accent transition-colors" />
     </div>
   );
 }

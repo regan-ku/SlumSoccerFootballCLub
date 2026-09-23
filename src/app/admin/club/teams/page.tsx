@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Plus, Shield, Users, Loader2, X, Edit3, UserX } from "lucide-react";
+import FileUpload from "@/components/ui/FileUpload"; // <-- IMPORT ADDED
 
 export default function AdminTeamsPage() {
   const [teams, setTeams] = useState<any[]>([]);
@@ -17,7 +18,7 @@ export default function AdminTeamsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
-    name: "", age_group_id: "", head_coach_id: "", captain_id: ""
+    name: "", age_group_id: "", head_coach_id: "", captain_id: "", team_photo_url: "" // <-- ADDED team_photo_url
   });
 
   useEffect(() => {
@@ -76,14 +77,14 @@ export default function AdminTeamsPage() {
     setSaving(false);
     if (!error) {
       setShowForm(false);
-      setFormData({ name: "", age_group_id: "", head_coach_id: "", captain_id: "" });
+      // Reset form including team_photo_url
+      setFormData({ name: "", age_group_id: "", head_coach_id: "", captain_id: "", team_photo_url: "" });
       window.location.reload();
     } else {
       alert("Error: " + error.message);
     }
   };
 
-  // SOFT DELETE FUNCTION
   const handleDeactivate = async (teamId: string) => {
     if (!window.confirm("Are you sure? This will disband the team but keep historical stats.")) return;
     
@@ -115,15 +116,29 @@ export default function AdminTeamsPage() {
         </button>
       </div>
 
-      {/* Create Team Modal (Unchanged) */}
+      {/* Create Team Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-card border border-border p-8 w-full max-w-lg">
+          <div className="bg-card border border-border p-8 w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h2 className="font-heading text-2xl font-bold uppercase text-foreground">Create New Team</h2>
               <button onClick={() => setShowForm(false)}><X className="w-5 h-5 text-muted-foreground hover:text-foreground" /></button>
             </div>
             <form onSubmit={handleSave} className="space-y-4">
+              
+              {/* NEW: TEAM PHOTO UPLOAD */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Team Photo / Logo (Max 5MB)</label>
+                <FileUpload 
+                  bucketName="club-media" 
+                  folder="teams" 
+                  value={formData.team_photo_url} 
+                  onChange={(url) => setFormData({...formData, team_photo_url: url})} 
+                  accept="image/*"
+                  maxSizeMB={5}
+                />
+              </div>
+
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Team Name *</label>
                 <input required value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full bg-background border border-border p-3 text-foreground focus:outline-none focus:border-accent" placeholder="e.g. Slum Stars U12" />

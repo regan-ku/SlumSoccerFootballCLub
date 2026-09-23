@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import FileUpload from "@/components/ui/FileUpload"; // <-- IMPORT ADDED
 
-// Strict typing for the reusable Input component to fix "implicit any" errors
 interface InputProps {
   label: string;
   value: string;
@@ -27,7 +27,7 @@ export default function EditPlayerPage() {
 
   const [formData, setFormData] = useState({
     first_name: "", last_name: "", date_of_birth: "", gender: "male",
-    position: "", jersey_number: "",
+    position: "", jersey_number: "", photo_url: "", // <-- photo_url ADDED
     guardian_name: "", guardian_phone: "", guardian_email: "",
     medical_conditions: "", allergies: "", school: "", grade_level: "",
     current_age_group_id: ""
@@ -54,6 +54,7 @@ export default function EditPlayerPage() {
           gender: playerData.gender || "male",
           position: playerData.position || "",
           jersey_number: playerData.jersey_number?.toString() || "",
+          photo_url: playerData.photo_url || "", // <-- FETCH photo_url
           guardian_name: playerData.guardian_name || "",
           guardian_phone: playerData.guardian_phone || "",
           guardian_email: playerData.guardian_email || "",
@@ -122,18 +123,13 @@ export default function EditPlayerPage() {
       </button>
 
       <div>
-        <h1 className="font-heading text-3xl font-bold uppercase tracking-tight text-foreground">
-          Edit Player Profile
-        </h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Update the player's details. The Age Group will recalculate automatically if the Date of Birth is changed.
-        </p>
+        <h1 className="font-heading text-3xl font-bold uppercase tracking-tight text-foreground">Edit Player Profile</h1>
+        <p className="text-muted-foreground text-sm mt-1">Update the player's details. The Age Group will recalculate automatically if the Date of Birth is changed.</p>
       </div>
 
       {success && <div className="bg-accent/10 border border-accent text-accent p-4 font-bold uppercase text-sm">{success}</div>}
 
       <form onSubmit={handleSubmit} className="bg-card border border-border p-8 space-y-8">
-        
         <div>
           <h3 className="font-heading text-xl font-bold uppercase text-accent mb-4 border-b border-border pb-2">Player Information</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -153,6 +149,19 @@ export default function EditPlayerPage() {
                 <option value="male">Male</option>
                 <option value="female">Female</option>
               </select>
+            </div>
+
+            {/* NEW: FILE UPLOAD COMPONENT */}
+            <div className="md:col-span-2">
+              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Player Photo</label>
+              <FileUpload 
+                bucketName="club-media" 
+                folder="players" 
+                value={formData.photo_url} 
+                onChange={(url) => setFormData({...formData, photo_url: url})} 
+                accept="image/*"
+                maxSizeMB={5}
+              />
             </div>
 
             <Input label="Position" value={formData.position} onChange={(v) => setFormData({...formData, position: v})} placeholder="e.g. Midfielder" />
@@ -192,21 +201,14 @@ export default function EditPlayerPage() {
   );
 }
 
-// Reusable Input Component with strict TypeScript typing
 function Input({ label, value, onChange, type = "text", required = false, placeholder = "" }: InputProps) {
   return (
     <div>
       <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
         {label} {required && <span className="text-accent">*</span>}
       </label>
-      <input 
-        type={type} 
-        required={required} 
-        value={value} 
-        onChange={(e) => onChange(e.target.value)} 
-        placeholder={placeholder}
-        className="w-full bg-background border border-border p-3 text-foreground focus:outline-none focus:border-accent transition-colors" 
-      />
+      <input type={type} required={required} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
+        className="w-full bg-background border border-border p-3 text-foreground focus:outline-none focus:border-accent transition-colors" />
     </div>
   );
 }

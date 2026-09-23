@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Plus, Mail, Phone, Loader2, X, Edit3, UserX } from "lucide-react";
+import FileUpload from "@/components/ui/FileUpload"; // <-- IMPORT ADDED
 
 const ROLES = [
   "head_coach", "assistant_coach", "goalkeeping_coach", 
@@ -19,7 +20,7 @@ export default function AdminStaffPage() {
 
   const [formData, setFormData] = useState({
     full_name: "", role: "head_coach", email: "", phone: "", 
-    qualifications: "", bio: ""
+    qualifications: "", bio: "", photo_url: "" // <-- photo_url ADDED
   });
 
   useEffect(() => {
@@ -46,14 +47,14 @@ export default function AdminStaffPage() {
     setSaving(false);
     if (!error) {
       setShowForm(false);
-      setFormData({ full_name: "", role: "head_coach", email: "", phone: "", qualifications: "", bio: "" });
+      // Reset form including photo_url
+      setFormData({ full_name: "", role: "head_coach", email: "", phone: "", qualifications: "", bio: "", photo_url: "" });
       fetchStaff();
     } else {
       alert("Error saving staff: " + error.message);
     }
   };
 
-  // SOFT DELETE FUNCTION
   const handleDeactivate = async (staffId: string) => {
     if (!window.confirm("Are you sure? This will remove the staff member from active lists but keep their historical records.")) return;
     
@@ -89,7 +90,7 @@ export default function AdminStaffPage() {
         </button>
       </div>
 
-      {/* Add Staff Modal (Unchanged) */}
+      {/* Add Staff Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
           <div className="bg-card border border-border p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -98,6 +99,20 @@ export default function AdminStaffPage() {
               <button onClick={() => setShowForm(false)}><X className="w-5 h-5 text-muted-foreground hover:text-foreground" /></button>
             </div>
             <form onSubmit={handleSave} className="space-y-4">
+              
+              {/* NEW: FILE UPLOAD COMPONENT */}
+              <div className="md:col-span-2">
+                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Staff Photo</label>
+                <FileUpload 
+                  bucketName="club-media" 
+                  folder="staff" 
+                  value={formData.photo_url} 
+                  onChange={(url) => setFormData({...formData, photo_url: url})} 
+                  accept="image/*"
+                  maxSizeMB={5}
+                />
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Full Name *</label>

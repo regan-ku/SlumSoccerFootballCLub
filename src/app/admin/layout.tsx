@@ -6,17 +6,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { 
-  LayoutDashboard, Users, Trophy, Calendar, Image, LogOut, Shield, 
-  Briefcase, Target, Newspaper, Settings, Menu, X
+  Users, Trophy, Calendar, Image, LogOut, Shield, 
+  Briefcase, Target, Newspaper, Settings, Menu, X, Plus
 } from "lucide-react";
 
-// Grouped Navigation Structure
+// Grouped Navigation Structure (Updated with League Teams)
 const navGroups = [
   {
     title: "Club Management",
     items: [
-      { name: "Players", href: "/admin/club/players", icon: <Users className="w-4 h-4" /> },
-      { name: "Teams", href: "/admin/club/teams", icon: <Trophy className="w-4 h-4" /> },
+      { name: "Players", href: "/admin/club/players/new", icon: <Users className="w-4 h-4" /> },
+      { name: "Teams", href: "/admin/club/teams/", icon: <Shield className="w-4 h-4" /> },
       { name: "Staff", href: "/admin/club/staff", icon: <Briefcase className="w-4 h-4" /> },
       { name: "Programs", href: "/admin/club/programs", icon: <Target className="w-4 h-4" /> },
     ]
@@ -24,7 +24,8 @@ const navGroups = [
   {
     title: "League Operations",
     items: [
-      { name: "Divisions", href: "/admin/league/divisions", icon: <Trophy className="w-4 h-4" /> },
+      { name: "League Teams", href: "/admin/league/teams", icon: <Trophy className="w-4 h-4" /> }, // <-- ADDED
+      { name: "Divisions", href: "/admin/league/divisions", icon: <Shield className="w-4 h-4" /> },
       { name: "Matches & Results", href: "/admin/league/matches", icon: <Calendar className="w-4 h-4" /> },
     ]
   },
@@ -40,7 +41,7 @@ const navGroups = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // State for mobile drawer
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -51,7 +52,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       if (user) {
         setUserEmail(user.email || null);
       } else {
-        router.push("/login"); // Updated to match the clean login route
+        router.push("/login");
       }
     };
     getUser();
@@ -65,14 +66,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const handleLogout = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push("/login"); // Updated to match the clean login route
+    router.push("/login");
     router.refresh();
   };
 
   return (
     <div className="min-h-screen bg-background flex">
       
-      {/* Mobile Overlay (Dark background when menu is open) */}
+      {/* Mobile Overlay */}
       {isMobileMenuOpen && (
         <div 
           className="fixed inset-0 z-40 bg-black/60 md:hidden" 
@@ -80,7 +81,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         />
       )}
 
-      {/* Sidebar (Slide-out on mobile, fixed on desktop) */}
+      {/* Sidebar */}
       <aside className={`
         fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border flex flex-col 
         transform transition-transform duration-300 ease-in-out 
@@ -94,13 +95,35 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Shield className="w-5 h-5 text-accent-foreground" />
             </div>
             <span className="font-heading text-lg font-bold uppercase tracking-wider text-foreground">
-              Admin Panel
+              Admin
             </span>
           </Link>
-          {/* Close button for mobile */}
           <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-muted-foreground hover:text-foreground">
             <X className="w-5 h-5" />
           </button>
+        </div>
+
+        {/* QUICK ADD ACTIONS (New Feature) */}
+        <div className="p-4 border-b border-border">
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2 px-2">
+            Quick Add
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <Link 
+              href="/admin/club/players/new" 
+              className="flex items-center justify-center gap-1 bg-accent/10 text-accent text-[11px] font-bold uppercase py-2 rounded-sm hover:bg-accent/20 transition-colors"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              <Plus className="w-3 h-3" /> Player
+            </Link>
+            <Link 
+              href="/admin/league/matches" 
+              className="flex items-center justify-center gap-1 bg-muted text-muted-foreground text-[11px] font-bold uppercase py-2 rounded-sm hover:bg-muted/80 transition-colors"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              <Calendar className="w-3 h-3" /> Match
+            </Link>
+          </div>
         </div>
 
         {/* Navigation Links */}
@@ -117,6 +140,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <Link
                       key={item.name}
                       href={item.href}
+                      onClick={() => setIsMobileMenuOpen(false)}
                       className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
                         isActive
                           ? "bg-accent text-accent-foreground"
@@ -150,7 +174,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Main Content Area */}
       <main className="flex-1 p-6 md:p-12 min-h-screen md:ml-64 transition-all duration-300">
         
-        {/* Mobile Top Bar (Hamburger Menu) */}
+        {/* Mobile Top Bar */}
         <div className="md:hidden mb-6 flex items-center justify-between border-b border-border pb-4">
           <button 
             onClick={() => setIsMobileMenuOpen(true)} 
@@ -161,7 +185,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <span className="font-heading text-lg font-bold uppercase tracking-wider text-foreground">
             Dashboard
           </span>
-          <div className="w-10" /> {/* Spacer to keep title visually centered */}
+          <div className="w-10" />
         </div>
 
         {children}

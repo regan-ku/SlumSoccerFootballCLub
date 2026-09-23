@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import FileUpload from "@/components/ui/FileUpload"; // <-- IMPORT ADDED
 
 const ROLES = [
   "head_coach", "assistant_coach", "goalkeeping_coach", 
@@ -21,7 +22,7 @@ export default function EditStaffPage() {
 
   const [formData, setFormData] = useState({
     full_name: "", role: "head_coach", email: "", phone: "", 
-    qualifications: "", bio: ""
+    qualifications: "", bio: "", photo_url: "" // <-- ADDED photo_url
   });
 
   useEffect(() => {
@@ -40,7 +41,8 @@ export default function EditStaffPage() {
           email: data.email || "",
           phone: data.phone || "",
           qualifications: data.qualifications || "",
-          bio: data.bio || ""
+          bio: data.bio || "",
+          photo_url: data.photo_url || "" // <-- FETCH photo_url
         });
       }
       setLoading(false);
@@ -58,7 +60,7 @@ export default function EditStaffPage() {
       .from("staff")
       .update({
         ...formData,
-        updated_at: new Date().toISOString() // Optional if you add this column later
+        updated_at: new Date().toISOString()
       })
       .eq("id", staffId);
 
@@ -87,6 +89,20 @@ export default function EditStaffPage() {
       {success && <div className="bg-accent/10 border border-accent text-accent p-4 font-bold uppercase text-sm">{success}</div>}
 
       <form onSubmit={handleSubmit} className="bg-card border border-border p-8 space-y-6">
+        
+        {/* NEW: FILE UPLOAD COMPONENT */}
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Staff Photo (Max 5MB)</label>
+          <FileUpload 
+            bucketName="club-media" 
+            folder="staff" 
+            value={formData.photo_url} 
+            onChange={(url) => setFormData({...formData, photo_url: url})} 
+            accept="image/*"
+            maxSizeMB={5}
+          />
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Full Name *</label>

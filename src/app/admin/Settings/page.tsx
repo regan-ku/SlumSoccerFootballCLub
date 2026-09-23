@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Loader2, Save, Building2 } from "lucide-react";
+import FileUpload from "@/components/ui/FileUpload"; // <-- IMPORT ADDED
 
-// 1. STRICT TYPE DEFINITION FOR INPUT COMPONENT
 interface InputProps {
   label: string;
   value: string;
@@ -23,7 +23,7 @@ export default function AdminSettingsPage() {
   const [formData, setFormData] = useState({
     name: "", tagline: "", mission: "", vision: "",
     location: "", contact_email: "", contact_phone: "", whatsapp_number: "",
-    mpesa_paybill_number: "", mpesa_account_name: ""
+    mpesa_paybill_number: "", mpesa_account_name: "", logo_url: "" // <-- ADDED logo_url
   });
 
   useEffect(() => {
@@ -37,7 +37,7 @@ export default function AdminSettingsPage() {
           name: data.name || "", tagline: data.tagline || "", mission: data.mission || "", vision: data.vision || "",
           location: data.location || "", contact_email: data.contact_email || "", contact_phone: data.contact_phone || "", 
           whatsapp_number: data.whatsapp_number || "", mpesa_paybill_number: data.mpesa_paybill_number || "", 
-          mpesa_account_name: data.mpesa_account_name || ""
+          mpesa_account_name: data.mpesa_account_name || "", logo_url: data.logo_url || "" // <-- FETCH logo_url
         });
       }
       setLoading(false);
@@ -87,6 +87,20 @@ export default function AdminSettingsPage() {
         <div>
           <h3 className="font-heading text-xl font-bold uppercase text-accent mb-4 border-b border-border pb-2">General Information</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            {/* NEW: CLUB LOGO UPLOAD */}
+            <div className="md:col-span-2">
+              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Club Logo (Max 5MB)</label>
+              <FileUpload 
+                bucketName="club-media" 
+                folder="organization" 
+                value={formData.logo_url} 
+                onChange={(url) => setFormData({...formData, logo_url: url})} 
+                accept="image/*"
+                maxSizeMB={5}
+              />
+            </div>
+
             <Input label="Club Name *" required value={formData.name} onChange={(v) => setFormData({...formData, name: v})} />
             <Input label="Tagline" value={formData.tagline} onChange={(v) => setFormData({...formData, tagline: v})} placeholder="e.g. More than just football" />
             <div className="md:col-span-2">
@@ -126,7 +140,6 @@ export default function AdminSettingsPage() {
   );
 }
 
-// 2. STRICTLY TYPED REUSABLE INPUT COMPONENT
 function Input({ label, value, onChange, type = "text", required = false, placeholder = "" }: InputProps) {
   return (
     <div>

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import FileUpload from "@/components/ui/FileUpload"; // <-- IMPORT ADDED
 
 const CATEGORIES = [
   "life_skills", "community_outreach", "education", 
@@ -20,7 +21,6 @@ export default function EditProgramPage() {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState("");
 
-  // Changed ages to strings to match input field behavior
   const [formData, setFormData] = useState({
     name: "", category: "life_skills", description: "",
     target_age_min: "5", target_age_max: "20",
@@ -32,14 +32,12 @@ export default function EditProgramPage() {
     const fetchData = async () => {
       const supabase = createClient();
       
-      // 1. Fetch Staff for dropdown
       const { data: staffData } = await supabase
         .from("staff")
         .select("id, full_name, role")
         .eq("is_active", true);
       if (staffData) setStaffList(staffData);
 
-      // 2. Fetch Existing Program Data
       const { data: progData, error } = await supabase
         .from("programs")
         .select("*")
@@ -51,7 +49,6 @@ export default function EditProgramPage() {
           name: progData.name || "",
           category: progData.category || "life_skills",
           description: progData.description || "",
-          // Convert numbers to strings for the form inputs
           target_age_min: progData.target_age_min?.toString() || "5",
           target_age_max: progData.target_age_max?.toString() || "20",
           schedule: progData.schedule || "",
@@ -77,7 +74,6 @@ export default function EditProgramPage() {
       .from("programs")
       .update({
         ...formData,
-        // Parse strings back to numbers for the database
         target_age_min: parseInt(formData.target_age_min) || 5,
         target_age_max: parseInt(formData.target_age_max) || 20,
         coordinator_id: formData.coordinator_id || null,
@@ -180,27 +176,42 @@ export default function EditProgramPage() {
             </div>
           </div>
 
-          {/* Conditional Media URL Input */}
+          {/* NEW: Conditional Media Upload */}
           {formData.media_type === 'image' ? (
             <div className="md:col-span-2">
-              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Photo URL</label>
-              <input 
+              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Upload Program Photo (Max 5MB)</label>
+              <FileUpload 
+                bucketName="club-media" 
+                folder="programs" 
                 value={formData.photo_url} 
-                onChange={(e) => setFormData({...formData, photo_url: e.target.value})} 
-                className="w-full bg-background border border-border p-3 text-foreground focus:outline-none focus:border-accent" 
-                placeholder="https://example.com/image.jpg" 
+                onChange={(url) => setFormData({...formData, photo_url: url})} 
+                accept="image/*"
+                maxSizeMB={5}
               />
             </div>
           ) : (
-            <div className="md:col-span-2">
-              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Video URL</label>
-              <input 
-                value={formData.video_url} 
-                onChange={(e) => setFormData({...formData, video_url: e.target.value})} 
-                className="w-full bg-background border border-border p-3 text-foreground focus:outline-none focus:border-accent" 
-                placeholder="YouTube URL or direct .mp4 link" 
-              />
-              <p className="text-xs text-muted-foreground mt-2">Supports YouTube links or direct .mp4 video files.</p>
+            <div className="md:col-span-2 space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Upload Video File (Max 50MB)</label>
+                <FileUpload 
+                  bucketName="club-media" 
+                  folder="programs/videos" 
+                  value={formData.video_url} 
+                  onChange={(url) => setFormData({...formData, video_url: url})} 
+                  accept="video/mp4,video/webm"
+                  maxSizeMB={50}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">OR Paste YouTube URL</label>
+                <input 
+                  value={formData.video_url.includes("youtube.com") || formData.video_url.includes("youtu.be") ? formData.video_url : ""} 
+                  onChange={(e) => setFormData({...formData, video_url: e.target.value})} 
+                  className="w-full bg-background border border-border p-3 text-foreground focus:outline-none focus:border-accent" 
+                  placeholder="https://youtube.com/..." 
+                />
+                <p className="text-xs text-muted-foreground mt-2">You can upload an MP4 directly above, or paste a YouTube link here.</p>
+              </div>
             </div>
           )}
 

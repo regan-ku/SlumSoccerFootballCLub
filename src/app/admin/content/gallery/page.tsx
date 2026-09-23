@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Plus, Trash2, Edit3, Loader2, X, PlayCircle, Image as ImageIcon } from "lucide-react";
+import FileUpload from "@/components/ui/FileUpload"; // <-- IMPORT ADDED
 
 const CATEGORIES = [
   "training", "match", "community", 
@@ -39,11 +40,7 @@ export default function AdminGalleryPage() {
     const fetchData = async () => {
       const supabase = createClient();
       
-      const { data: galleryData } = await supabase
-        .from("gallery")
-        .select("*")
-        .order("created_at", { ascending: false });
-
+      const { data: galleryData } = await supabase.from("gallery").select("*").order("created_at", { ascending: false });
       const { data: agData } = await supabase.from("age_groups").select("id, name").eq("is_active", true);
       const { data: teamData } = await supabase.from("internal_teams").select("id, name").eq("is_active", true);
       const { data: progData } = await supabase.from("programs").select("id, name").eq("is_active", true);
@@ -61,15 +58,9 @@ export default function AdminGalleryPage() {
     if (item) {
       setEditingId(item.id);
       setFormData({
-        title: item.title || "",
-        description: item.description || "",
-        type: item.type || "photo",
-        url: item.url || "",
-        thumbnail_url: item.thumbnail_url || "",
-        category: item.category || "training",
-        age_group_id: item.age_group_id || "",
-        team_id: item.team_id || "",
-        program_id: item.program_id || ""
+        title: item.title || "", description: item.description || "", type: item.type || "photo",
+        url: item.url || "", thumbnail_url: item.thumbnail_url || "", category: item.category || "training",
+        age_group_id: item.age_group_id || "", team_id: item.team_id || "", program_id: item.program_id || ""
       });
     } else {
       setEditingId(null);
@@ -146,22 +137,10 @@ export default function AdminGalleryPage() {
             </div>
             <form onSubmit={handleSave} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <button
-                  type="button"
-                  onClick={() => setFormData({...formData, type: "photo"})}
-                  className={`p-3 border text-sm font-bold uppercase flex items-center justify-center gap-2 ${
-                    formData.type === 'photo' ? 'border-accent text-accent bg-accent/10' : 'border-border text-muted-foreground'
-                  }`}
-                >
+                <button type="button" onClick={() => setFormData({...formData, type: "photo"})} className={`p-3 border text-sm font-bold uppercase flex items-center justify-center gap-2 ${formData.type === 'photo' ? 'border-accent text-accent bg-accent/10' : 'border-border text-muted-foreground'}`}>
                   <ImageIcon className="w-4 h-4" /> Photo
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setFormData({...formData, type: "video"})}
-                  className={`p-3 border text-sm font-bold uppercase flex items-center justify-center gap-2 ${
-                    formData.type === 'video' ? 'border-accent text-accent bg-accent/10' : 'border-border text-muted-foreground'
-                  }`}
-                >
+                <button type="button" onClick={() => setFormData({...formData, type: "video"})} className={`p-3 border text-sm font-bold uppercase flex items-center justify-center gap-2 ${formData.type === 'video' ? 'border-accent text-accent bg-accent/10' : 'border-border text-muted-foreground'}`}>
                   <PlayCircle className="w-4 h-4" /> Video
                 </button>
               </div>
@@ -178,28 +157,52 @@ export default function AdminGalleryPage() {
                 </select>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-                  {formData.type === 'photo' ? 'Image URL' : 'Video URL'} *
-                </label>
-                <input 
-                  required 
-                  value={formData.url} 
-                  onChange={(e) => setFormData({...formData, url: e.target.value})} 
-                  className="w-full bg-background border border-border p-3 text-foreground focus:outline-none focus:border-accent" 
-                  placeholder={formData.type === 'photo' ? "https://..." : "YouTube URL or .mp4 link"} 
-                />
-              </div>
-
-              {formData.type === 'video' && (
+              {/* NEW: Conditional Media Upload */}
+              {formData.type === 'photo' ? (
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Thumbnail URL (Optional)</label>
-                  <input 
-                    value={formData.thumbnail_url} 
-                    onChange={(e) => setFormData({...formData, thumbnail_url: e.target.value})} 
-                    className="w-full bg-background border border-border p-3 text-foreground focus:outline-none focus:border-accent" 
-                    placeholder="https://... (preview image for video)" 
+                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Upload Photo (Max 5MB)</label>
+                  <FileUpload 
+                    bucketName="club-media" 
+                    folder="gallery/photos" 
+                    value={formData.url} 
+                    onChange={(url) => setFormData({...formData, url})} 
+                    accept="image/*"
+                    maxSizeMB={5}
                   />
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Upload Video File (Max 50MB)</label>
+                    <FileUpload 
+                      bucketName="club-media" 
+                      folder="gallery/videos" 
+                      value={formData.url} 
+                      onChange={(url) => setFormData({...formData, url})} 
+                      accept="video/mp4,video/webm"
+                      maxSizeMB={50}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">OR Paste YouTube URL</label>
+                    <input 
+                      value={formData.url.includes("youtube.com") || formData.url.includes("youtu.be") ? formData.url : ""} 
+                      onChange={(e) => setFormData({...formData, url: e.target.value})} 
+                      className="w-full bg-background border border-border p-3 text-foreground focus:outline-none focus:border-accent" 
+                      placeholder="https://youtube.com/..." 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Video Thumbnail (Optional, Max 5MB)</label>
+                    <FileUpload 
+                      bucketName="club-media" 
+                      folder="gallery/thumbnails" 
+                      value={formData.thumbnail_url} 
+                      onChange={(url) => setFormData({...formData, thumbnail_url: url})} 
+                      accept="image/*"
+                      maxSizeMB={5}
+                    />
+                  </div>
                 </div>
               )}
 
@@ -240,7 +243,7 @@ export default function AdminGalleryPage() {
         </div>
       )}
 
-      {/* Gallery Grid */}
+      {/* Gallery Grid (Unchanged) */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {loading ? (
           <p className="text-muted-foreground col-span-full text-center py-12">Loading...</p>
@@ -251,26 +254,20 @@ export default function AdminGalleryPage() {
             <div key={item.id} className="bg-card border border-border group relative">
               <div className="aspect-square relative overflow-hidden">
                 {item.type === 'video' ? (
-                  <>
-                    {item.thumbnail_url ? (
-                      <img src={item.thumbnail_url} alt={item.title} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full bg-muted flex items-center justify-center">
-                        <PlayCircle className="w-12 h-12 text-muted-foreground" />
-                      </div>
-                    )}
-                  </>
+                  item.thumbnail_url ? (
+                    <img src={item.thumbnail_url} alt={item.title} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-muted flex items-center justify-center">
+                      <PlayCircle className="w-12 h-12 text-muted-foreground" />
+                    </div>
+                  )
                 ) : (
                   <img src={item.url} alt={item.title} className="w-full h-full object-cover" />
                 )}
                 
                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                  <button onClick={() => openForm(item)} className="p-2 bg-accent text-accent-foreground rounded-sm">
-                    <Edit3 className="w-4 h-4" />
-                  </button>
-                  <button onClick={() => handleDelete(item.id)} className="p-2 bg-red-500 text-white rounded-sm">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <button onClick={() => openForm(item)} className="p-2 bg-accent text-accent-foreground rounded-sm"><Edit3 className="w-4 h-4" /></button>
+                  <button onClick={() => handleDelete(item.id)} className="p-2 bg-red-500 text-white rounded-sm"><Trash2 className="w-4 h-4" /></button>
                 </div>
 
                 <div className="absolute top-2 left-2">
@@ -279,7 +276,6 @@ export default function AdminGalleryPage() {
                   </span>
                 </div>
               </div>
-              
               <div className="p-3">
                 <h3 className="font-heading text-sm font-bold uppercase text-foreground truncate">{item.title}</h3>
                 <p className="text-xs text-muted-foreground mt-1">{new Date(item.created_at).toLocaleDateString()}</p>
