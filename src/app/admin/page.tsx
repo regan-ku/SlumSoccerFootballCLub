@@ -97,7 +97,7 @@ export default function AdminDashboard() {
             <span className="font-bold uppercase text-xs text-foreground">Post News</span>
           </Link>
           
-          <Link href="/admin/settings" className="bg-card border border-border p-6 hover:border-accent transition-colors flex flex-col items-center text-center group">
+          <Link href="/admin/details" className="bg-card border border-border p-6 hover:border-accent transition-colors flex flex-col items-center text-center group">
             <Trophy className="w-8 h-8 text-muted-foreground group-hover:text-accent mb-3 transition-colors" />
             <span className="font-bold uppercase text-xs text-foreground">Club Details</span>
           </Link>
