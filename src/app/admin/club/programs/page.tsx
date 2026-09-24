@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, Link } from "next/navigation"; // Added Link
+import { useRouter } from "next/navigation";
+import Link from "next/link"; // <-- FIXED: Link comes from "next/link"
 import { createClient } from "@/lib/supabase/client";
-import { ArrowLeft, Loader2, AlertCircle, Edit3 } from "lucide-react"; // Added Edit3
+import { ArrowLeft, Loader2, AlertCircle, Edit3 } from "lucide-react";
 import MultiFileUpload from "@/components/ui/MultiFileUpload";
 import { programSchema } from "@/lib/validations/program";
 
@@ -25,7 +26,7 @@ type ProgramFormState = {
 export default function ProgramsPage() {
   const router = useRouter();
   const [staffList, setStaffList] = useState<any[]>([]);
-  const [programs, setPrograms] = useState<any[]>([]); // <-- NEW: State for existing programs
+  const [programs, setPrograms] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -52,7 +53,6 @@ export default function ProgramsPage() {
         .order("created_at", { ascending: false });
       
       if (progData) {
-        // Only show active programs in the list
         setPrograms(progData.filter(p => p.is_active !== false));
       }
     };
@@ -102,6 +102,7 @@ export default function ProgramsPage() {
       alert("Error saving program: " + error.message);
     } else {
       setSuccess("Program added successfully!");
+      
       // Refresh the list to show the newly added program
       const { data } = await supabase.from("programs").select("id, name, category, is_active").order("created_at", { ascending: false });
       if (data) setPrograms(data.filter(p => p.is_active !== false));
@@ -125,7 +126,7 @@ export default function ProgramsPage() {
       </button>
 
       {/* ========================================== */}
-      {/* 1. EXISTING PROGRAMS LIST (NEWLY ADDED)    */}
+      {/* 1. EXISTING PROGRAMS LIST                  */}
       {/* ========================================== */}
       <div>
         <h2 className="font-heading text-2xl font-bold uppercase tracking-tight text-foreground mb-4">Existing Programs</h2>
@@ -165,7 +166,7 @@ export default function ProgramsPage() {
       <div className="border-t border-border my-8" />
 
       {/* ========================================== */}
-      {/* 2. ADD NEW PROGRAM FORM (YOUR ORIGINAL)    */}
+      {/* 2. ADD NEW PROGRAM FORM                    */}
       {/* ========================================== */}
       <div>
         <h1 className="font-heading text-3xl font-bold uppercase tracking-tight text-foreground mb-1">Add New Program</h1>
@@ -210,7 +211,6 @@ export default function ProgramsPage() {
             <Input label="Schedule" value={formData.schedule} error={errors.schedule} onChange={(v) => setFormData({...formData, schedule: v})} placeholder="e.g. Saturdays 9AM - 12PM" />
             <Input label="Location" value={formData.location} error={errors.location} onChange={(v) => setFormData({...formData, location: v})} placeholder="e.g. Community Hall" />
 
-            {/* UNIFIED MEDIA UPLOAD SECTION */}
             <div className="md:col-span-2 space-y-4">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
