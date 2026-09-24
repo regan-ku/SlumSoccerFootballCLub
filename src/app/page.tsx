@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { Heart, Trophy, Users, Calendar, PlayCircle, Quote, MapPin, ArrowRight } from "lucide-react";
+import { Heart, Trophy, Users, Calendar, PlayCircle, Quote } from "lucide-react";
 
 export default function Home() {
   const [orgData, setOrgData] = useState({ 
@@ -11,7 +11,6 @@ export default function Home() {
     mission: "Empowering Kisumu's Youth Through Football and Discipline.", 
     mpesa_paybill_number: "000000", 
     mpesa_account_name: "Kisumu GreenLand Academy",
-    location: "" // <-- Added location
   });
   const [recentGallery, setRecentGallery] = useState<any[]>([]);
   const [recentPrograms, setRecentPrograms] = useState<any[]>([]);
@@ -24,7 +23,7 @@ export default function Home() {
       const supabase = createClient();
       
       const [orgRes, galleryRes, progRes, matchRes, coachRes] = await Promise.all([
-        supabase.from("organization").select("name, mission, mpesa_paybill_number, mpesa_account_name, location").limit(1).single(), // <-- Added location
+        supabase.from("organization").select("name, mission, mpesa_paybill_number, mpesa_account_name").limit(1).single(),
         supabase.from("gallery").select("id, title, type, url, thumbnail_url").order("created_at", { ascending: false }).limit(4),
         supabase.from("programs").select("id, name, description, photo_url, media_urls").eq("is_active", true).order("created_at", { ascending: false }).limit(3),
         supabase.from("league_fixtures").select("scheduled_date, home_team:league_teams!home_team_id(name), away_team:league_teams!away_team_id(name)").eq("status", "scheduled").order("scheduled_date", { ascending: true }).limit(1).single(),
@@ -71,17 +70,23 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 2. LATEST MOMENTS (Gallery Preview) */}
+      {/* 2. LATEST MOMENTS (Uniform Gallery Preview) */}
       <section className="section-padding bg-background">
         <div className="flex items-center justify-between mb-8">
           <h2 className="font-heading text-3xl font-bold uppercase tracking-tight">Latest <span className="text-accent">Moments</span></h2>
           <Link href="/gallery" className="text-sm font-bold uppercase tracking-wider text-muted-foreground hover:text-accent transition-colors flex items-center gap-1">View All <span className="text-lg">→</span></Link>
         </div>
+        
+        {/* Changed to a uniform grid: all photos are now the same reasonable size (aspect-square) */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {recentGallery.map((item, idx) => {
+          {recentGallery.map((item) => {
             const displayUrl = getFirstImage(item.url);
             return (
-              <Link key={item.id} href="/gallery" className={`group relative overflow-hidden rounded-sm border border-border hover:border-accent transition-all duration-300 ${idx === 0 ? 'md:col-span-2 md:row-span-2 aspect-square' : 'aspect-video'}`}>
+              <Link 
+                key={item.id} 
+                href="/gallery" 
+                className="group relative overflow-hidden rounded-sm border border-border hover:border-accent transition-all duration-300 aspect-square"
+              >
                 {item.type === 'video' && item.thumbnail_url ? (
                   <img src={item.thumbnail_url} alt={item.title} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" />
                 ) : (
@@ -177,44 +182,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 5. INTERACTIVE LOCATION & DIRECTIONS (REPLACES IFRAME) */}
-      {orgData.location && (
-        <section className="section-padding bg-card border-y border-border">
-          <div className="text-center mb-8">
-            <h2 className="font-heading text-3xl font-bold uppercase tracking-tight flex items-center justify-center gap-3">
-              <MapPin className="w-8 h-8 text-accent" /> Find <span className="text-accent">Us</span>
-            </h2>
-            <p className="text-muted-foreground text-sm mt-2">Click below to get instant directions to our grounds.</p>
-          </div>
-          
-          <div className="max-w-3xl mx-auto">
-            <a
-              href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(orgData.location)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group block bg-background border border-border p-6 md:p-8 rounded-sm hover:border-accent hover:shadow-lg transition-all duration-300"
-            >
-              <div className="flex flex-col md:flex-row items-center gap-6">
-                {/* Map Icon Area */}
-                <div className="w-full md:w-1/3 aspect-video bg-muted rounded-sm overflow-hidden flex items-center justify-center group-hover:bg-accent/10 transition-colors">
-                  <MapPin className="w-12 h-12 text-accent" />
-                </div>
-                
-                {/* Text Area */}
-                <div className="flex-1 text-center md:text-left">
-                  <h3 className="font-heading text-xl font-bold uppercase text-foreground mb-2">Visit Our Grounds</h3>
-                  <p className="text-muted-foreground mb-4 text-sm md:text-base">{orgData.location}</p>
-                  <div className="inline-flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-accent group-hover:text-foreground transition-colors">
-                    Get Directions on Google Maps <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-                  </div>
-                </div>
-              </div>
-            </a>
-          </div>
-        </section>
-      )}
-
-      {/* 6. CAPTIVATING DONATION CTA */}
+      {/* 5. CAPTIVATING DONATION CTA (Location section completely removed) */}
       <section className="relative py-24 md:py-32 bg-black text-white overflow-hidden">
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?q=80&w=2000&auto=format&fit=crop')] bg-cover bg-center opacity-30" />
         <div className="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-transparent" />

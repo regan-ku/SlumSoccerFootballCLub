@@ -39,9 +39,23 @@ export default function GalleryPage() {
     fetchGallery();
   }, []);
 
+  // 1. FILTER BY CATEGORY
   const filteredGallery = selectedCategory === "All"
     ? gallery
     : gallery.filter(item => item.category === selectedCategory);
+
+  // 2. FLATTEN THE ARRAY: If a row has multiple URLs, create a separate card for EACH URL
+  const flattenedGallery = filteredGallery.flatMap((item) => {
+    // Ensure urls is always an array, even if it's a single string or null
+    const urls = Array.isArray(item.url) ? item.url : (item.url ? [item.url] : []);
+    
+    // Map each URL to its own object, inheriting the parent's metadata (title, category, etc.)
+    return urls.map((singleUrl: string, index: number) => ({
+      ...item,
+      url: singleUrl, // Override the array with the single URL for this specific card
+      uniqueKey: `${item.id}-${index}` // Unique key for React rendering
+    }));
+  });
 
   const formatCategory = (cat: string) => cat.replace('_', ' ').toUpperCase();
 
@@ -87,58 +101,61 @@ export default function GalleryPage() {
       <section className="section-padding">
         {loading ? (
           <div className="text-center text-muted-foreground py-20">Loading gallery...</div>
-        ) : filteredGallery.length === 0 ? (
+        ) : flattenedGallery.length === 0 ? (
           <div className="text-center text-muted-foreground py-20">No media found in this category.</div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {filteredGallery.map((item) => {
-              // Handle array or string for url (backward compatibility)
-              const displayUrl = Array.isArray(item.url) ? item.url[0] : item.url;
-              
-              return (
-                <div
-                  key={item.id}
-                  onClick={() => setSelectedMedia(item)}
-                  className="group relative aspect-square bg-muted border border-border overflow-hidden cursor-pointer hover:border-accent transition-all duration-300"
-                >
-                  {item.type === 'video' ? (
-                    <>
-                      {item.thumbnail_url ? (
-                        <img src={item.thumbnail_url} alt={item.title} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-black/20">
-                          <PlayCircle className="w-12 h-12 text-muted-foreground" />
-                        </div>
-                      )}
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <PlayCircle className="w-12 h-12 text-accent" />
+            {flattenedGallery.map((item) => (
+              <div
+                key={item.uniqueKey}
+                onClick={() => setSelectedMedia(item)}
+                className="group relative aspect-square bg-muted border border-border overflow-hidden cursor-pointer hover:border-accent transition-all duration-300"
+              >
+                {/* Media Display */}
+                {item.type === 'video' ? (
+                  <>
+                    {item.thumbnail_url ? (
+                      <img src={item.thumbnail_url} alt={item.title} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-black/20">
+                        <PlayCircle className="w-12 h-12 text-muted-foreground" />
                       </div>
-                    </>
-                  ) : (
-                    <img src={displayUrl} alt={item.title} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" />
-                  )}
+                    )}
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <PlayCircle className="w-12 h-12 text-accent" />
+                    </div>
+                  </>
+                ) : (
+                  <img 
+                    src={item.url} 
+                    alt={item.title} 
+                    className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" 
+                  />
+                )}
 
-                  <div className="absolute top-2 left-2">
-                    <span className={`text-[9px] font-bold px-1.5 py-0.5 uppercase tracking-wider border rounded-sm ${CATEGORY_COLORS[item.category] || "bg-muted text-muted-foreground border-border"}`}>
-                      {formatCategory(item.category)}
-                    </span>
-                  </div>
-
-                  {item.type === 'video' && (
-                    <div className="absolute top-2 right-2 bg-black/70 text-accent text-[9px] font-bold px-1.5 py-0.5 uppercase tracking-wider rounded-sm">Video</div>
-                  )}
-
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <h3 className="font-heading text-xs font-bold uppercase text-foreground mb-0.5 line-clamp-1">{item.title}</h3>
-                  </div>
+                {/* Category Badge */}
+                <div className="absolute top-2 left-2">
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 uppercase tracking-wider border rounded-sm ${CATEGORY_COLORS[item.category] || "bg-muted text-muted-foreground border-border"}`}>
+                    {formatCategory(item.category)}
+                  </span>
                 </div>
-              );
-            })}
+
+                {/* Video Indicator */}
+                {item.type === 'video' && (
+                  <div className="absolute top-2 right-2 bg-black/70 text-accent text-[9px] font-bold px-1.5 py-0.5 uppercase tracking-wider rounded-sm">Video</div>
+                )}
+
+                {/* Title Overlay (Only show on hover) */}
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <h3 className="font-heading text-xs font-bold uppercase text-foreground mb-0.5 line-clamp-1">{item.title}</h3>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </section>
 
-      {/* Lightbox Modal (Unchanged, works perfectly) */}
+      {/* Lightbox Modal */}
       {selectedMedia && (
         <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4" onClick={() => setSelectedMedia(null)}>
           <button onClick={() => setSelectedMedia(null)} className="absolute top-4 right-4 text-foreground hover:text-accent transition-colors z-50">
@@ -146,22 +163,24 @@ export default function GalleryPage() {
           </button>
 
           <div className="max-w-5xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            {/* Media Display */}
             <div className="bg-card border border-border p-2 md:p-4 mb-4">
               {selectedMedia.type === 'video' ? (
-                getYouTubeEmbedUrl(Array.isArray(selectedMedia.url) ? selectedMedia.url[0] : selectedMedia.url) ? (
+                getYouTubeEmbedUrl(selectedMedia.url) ? (
                   <div className="aspect-video">
-                    <iframe src={getYouTubeEmbedUrl(Array.isArray(selectedMedia.url) ? selectedMedia.url[0] : selectedMedia.url)!} title={selectedMedia.title} className="w-full h-full" allowFullScreen />
+                    <iframe src={getYouTubeEmbedUrl(selectedMedia.url)!} title={selectedMedia.title} className="w-full h-full" allowFullScreen />
                   </div>
                 ) : (
                   <video controls className="w-full aspect-video">
-                    <source src={Array.isArray(selectedMedia.url) ? selectedMedia.url[0] : selectedMedia.url} type="video/mp4" />
+                    <source src={selectedMedia.url} type="video/mp4" />
                   </video>
                 )
               ) : (
-                <img src={Array.isArray(selectedMedia.url) ? selectedMedia.url[0] : selectedMedia.url} alt={selectedMedia.title} className="w-full h-auto" />
+                <img src={selectedMedia.url} alt={selectedMedia.title} className="w-full h-auto" />
               )}
             </div>
 
+            {/* Media Info */}
             <div className="bg-card border border-border p-6">
               <div className="flex items-start justify-between mb-4">
                 <h2 className="font-heading text-2xl font-bold uppercase text-foreground">{selectedMedia.title}</h2>
