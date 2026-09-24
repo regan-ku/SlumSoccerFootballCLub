@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Upload, Loader2, X } from "lucide-react";
+import { Upload, Loader2, X, PlayCircle } from "lucide-react";
 
 interface MultiFileUploadProps {
   bucketName: string;
@@ -19,8 +19,8 @@ export default function MultiFileUpload({
   folder, 
   values = [], 
   onChange, 
-  accept = "image/*", 
-  maxSizeMB = 5,
+  accept = "image/*,video/mp4,video/webm,video/quicktime", 
+  maxSizeMB = 100, // Increased default to 100MB for videos
   maxFiles = 15
 }: MultiFileUploadProps) {
   const [uploading, setUploading] = useState(false);
@@ -86,6 +86,11 @@ export default function MultiFileUpload({
     onChange(values.filter((_, index) => index !== indexToRemove));
   };
 
+  // Helper to check if a URL is a video
+  const isVideoUrl = (url: string) => {
+    return url.match(/\.(mp4|webm|mov|ogg|m4v)$/i) || url.includes('youtube.com') || url.includes('youtu.be');
+  };
+
   return (
     <div className="space-y-4">
       {/* Previews Grid */}
@@ -93,12 +98,18 @@ export default function MultiFileUpload({
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
           {values.map((url, index) => (
             <div key={index} className="relative aspect-square bg-muted border border-border rounded-sm overflow-hidden group">
-              <img src={url} alt={`Preview ${index + 1}`} className="w-full h-full object-cover" />
+              {isVideoUrl(url) ? (
+                <div className="w-full h-full flex items-center justify-center bg-black/20">
+                  <PlayCircle className="w-10 h-10 text-accent" />
+                </div>
+              ) : (
+                <img src={url} alt={`Preview ${index + 1}`} className="w-full h-full object-cover" />
+              )}
               <button
                 type="button"
                 onClick={() => handleRemove(index)}
                 className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
-                title="Remove image"
+                title="Remove media"
               >
                 <X className="w-4 h-4" />
               </button>

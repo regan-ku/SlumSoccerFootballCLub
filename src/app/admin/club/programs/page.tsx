@@ -4,12 +4,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ArrowLeft, Loader2, AlertCircle } from "lucide-react";
-import MultiFileUpload from "@/components/ui/MultiFileUpload"; // <-- IMPORT MULTI UPLOAD
+import MultiFileUpload from "@/components/ui/MultiFileUpload";
 import { programSchema } from "@/lib/validations/program";
 
 const CATEGORIES = ["life_skills", "community_outreach", "education", "health", "mentorship", "training", "player_development"];
 
-// STRICT TYPE DEFINITION: Updated media_urls to be an array of strings
 type ProgramFormState = {
   name: string;
   category: "life_skills" | "community_outreach" | "education" | "health" | "mentorship" | "training" | "player_development";
@@ -19,8 +18,8 @@ type ProgramFormState = {
   schedule: string;
   location: string;
   coordinator_id: string;
-  media_urls: string[]; // Changed from photo_url/video_url to a unified media array
-  media_type: "image" | "video";
+  media_urls: string[]; // Unified array for BOTH photos and videos
+  youtube_url: string;  // Optional separate field for YouTube links
 };
 
 export default function AddProgramPage() {
@@ -34,7 +33,7 @@ export default function AddProgramPage() {
     name: "", category: "life_skills", description: "",
     target_age_min: "5", target_age_max: "20",
     schedule: "", location: "", coordinator_id: "",
-    media_urls: [], media_type: "image"
+    media_urls: [], youtube_url: ""
   });
 
   useEffect(() => {
@@ -52,9 +51,17 @@ export default function AddProgramPage() {
     setSuccess("");
     setErrors({});
 
-    // Convert strings to numbers for Zod validation
+    // Merge YouTube URL into media_urls if provided
+    const finalMediaUrls = [...formData.media_urls];
+    if (formData.youtube_url && (formData.youtube_url.includes("youtube.com") || formData.youtube_url.includes("youtu.be"))) {
+      if (!finalMediaUrls.includes(formData.youtube_url)) {
+        finalMediaUrls.push(formData.youtube_url);
+      }
+    }
+
     const payloadForValidation = {
       ...formData,
+      media_urls: finalMediaUrls,
       target_age_min: Number(formData.target_age_min),
       target_age_max: Number(formData.target_age_max),
     };
@@ -74,7 +81,6 @@ export default function AddProgramPage() {
     const { error } = await supabase.from("programs").insert([{
       ...result.data,
       coordinator_id: result.data.coordinator_id || null,
-      // Note: Ensure your DB column is named 'media_urls' and is type text[]
     }]);
 
     setLoading(false);
@@ -136,27 +142,41 @@ export default function AddProgramPage() {
           <Input label="Schedule" value={formData.schedule} error={errors.schedule} onChange={(v) => setFormData({...formData, schedule: v})} placeholder="e.g. Saturdays 9AM - 12PM" />
           <Input label="Location" value={formData.location} error={errors.location} onChange={(v) => setFormData({...formData, location: v})} placeholder="e.g. Community Hall" />
 
-          <div className="md:col-span-2">
-            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Media Type</label>
-            <div className="grid grid-cols-2 gap-4">
-              <button type="button" onClick={() => setFormData({...formData, media_type: "image"})} className={`p-3 border text-sm font-bold uppercase transition-colors ${formData.media_type === 'image' ? 'border-accent text-accent bg-accent/10' : 'border-border text-muted-foreground hover:border-foreground'}`}>Photos</button>
-              <button type="button" onClick={() => setFormData({...formData, media_type: "video"})} className={`p-3 border text-sm font-bold uppercase transition-colors ${formData.media_type === 'video' ? 'border-accent text-accent bg-accent/10' : 'border-border text-muted-foreground hover:border-foreground'}`}>Videos</button>
+          {/* UNIFIED MEDIA UPLOAD SECTION */}
+          <div className="md:col-span-2 space-y-4">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                Program Media (Photos & Videos)
+              </label>
+              <p className="text-[10px] text-muted-foreground mb-2">
+                You can upload a mix of photos and video files. Max 15 files, up to 100MB each.
+              </p>
+              <MultiFileUpload 
+                bucketName="club-media" 
+                folder="programs/media" 
+                values={formData.media_urls} 
+                onChange={(urls) => setFormData({...formData, media_urls: urls})} 
+                accept="image/*,video/mp4,video/webm,video/quicktime,video/x-m4v" 
+                maxSizeMB={100} 
+                maxFiles={15} 
+              />
             </div>
-          </div>
 
-          <div className="md:col-span-2">
-            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-              Upload {formData.media_type === 'image' ? 'Photos' : 'Videos'} (Max 15 files)
-            </label>
-            <MultiFileUpload 
-              bucketName="club-media" 
-              folder={`programs/${formData.media_type === 'image' ? 'photos' : 'videos'}`} 
-              values={formData.media_urls} 
-              onChange={(urls) => setFormData({...formData, media_urls: urls})} 
-              accept={formData.media_type === 'image' ? "image/*" : "video/mp4,video/webm"} 
-              maxSizeMB={formData.media_type === 'image' ? 5 : 50} 
-              maxFiles={15} 
-            />
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                YouTube Video URL (Optional)
+              </label>
+              <input 
+                type="url"
+                value={formData.youtube_url} 
+                onChange={(e) => setFormData({...formData, youtube_url: e.target.value})} 
+                className="w-full bg-background border border-border p-3 text-foreground focus:outline-none focus:border-accent transition-colors" 
+                placeholder="https://youtube.com/watch?v=..." 
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                If you have a YouTube highlight, paste the link here. It will be added to the program's media gallery.
+              </p>
+            </div>
           </div>
 
           <div className="md:col-span-2">
