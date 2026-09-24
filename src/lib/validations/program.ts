@@ -9,12 +9,13 @@ export const programSchema = z.object({
   schedule: z.string().optional(),
   location: z.string().optional(),
   coordinator_id: z.string().optional().or(z.literal("")),
-  photo_url: z.string().optional().or(z.literal("")),
-  video_url: z.string().optional().or(z.literal("")),
+  
+  // UPDATED: Replaced photo_url/video_url with a unified media_urls array
+  media_urls: z.array(z.string()).min(1, "Please upload at least one media file"),
   media_type: z.enum(["image", "video"]).default("image"),
 }).refine((data) => data.target_age_max >= data.target_age_min, {
   message: "Maximum age must be greater than or equal to minimum age",
-  path: ["target_age_max"], // This attaches the error to the max_age field
+  path: ["target_age_max"],
 });
 
 export type ProgramFormData = z.infer<typeof programSchema>;

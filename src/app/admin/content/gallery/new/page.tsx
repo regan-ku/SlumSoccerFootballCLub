@@ -3,13 +3,31 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Plus, Trash2, Edit3, Loader2, X, PlayCircle, Image as ImageIcon, AlertCircle } from "lucide-react";
-import FileUpload from "@/components/ui/FileUpload";
-import { gallerySchema, type GalleryFormData } from "@/lib/validations/gallery"; // <-- IMPORT ZOD
+import MultiFileUpload from "@/components/ui/MultiFileUpload";
+import { gallerySchema } from "@/lib/validations/gallery"; 
 
 const CATEGORIES = ["training", "match", "community", "life_skills", "outreach", "events", "celebrations"];
 const CATEGORY_COLORS: Record<string, string> = {
-  training: "bg-blue-500/10 text-blue-500", match: "bg-green-500/10 text-green-500", community: "bg-purple-500/10 text-purple-500",
-  life_skills: "bg-yellow-500/10 text-yellow-500", outreach: "bg-red-500/10 text-red-500", events: "bg-pink-500/10 text-pink-500", celebrations: "bg-accent/10 text-accent",
+  training: "bg-blue-500/10 text-blue-500", 
+  match: "bg-green-500/10 text-green-500", 
+  community: "bg-purple-500/10 text-purple-500",
+  life_skills: "bg-yellow-500/10 text-yellow-500", 
+  outreach: "bg-red-500/10 text-red-500", 
+  events: "bg-pink-500/10 text-pink-500", 
+  celebrations: "bg-accent/10 text-accent",
+};
+
+// Local type to handle URL arrays
+type GalleryFormState = {
+  title: string;
+  description: string;
+  type: "photo" | "video";
+  urls: string[]; // Array for multi-upload
+  thumbnail_url: string;
+  category: string;
+  age_group_id: string;
+  team_id: string;
+  program_id: string;
 };
 
 export default function AdminGalleryPage() {
@@ -22,10 +40,10 @@ export default function AdminGalleryPage() {
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [errors, setErrors] = useState<Record<string, string>>({}); // <-- NEW: Error state
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const [formData, setFormData] = useState<GalleryFormData>({
-    title: "", description: "", type: "photo", url: "", thumbnail_url: "",
+  const [formData, setFormData] = useState<GalleryFormState>({
+    title: "", description: "", type: "photo", urls: [], thumbnail_url: "",
     category: "training", age_group_id: "", team_id: "", program_id: ""
   });
 
@@ -49,14 +67,16 @@ export default function AdminGalleryPage() {
   const openForm = (item: any = null) => {
     if (item) {
       setEditingId(item.id);
+      // Safely convert string or array to array
+      const existingUrls = Array.isArray(item.url) ? item.url : (item.url ? [item.url] : []);
       setFormData({
         title: item.title || "", description: item.description || "", type: item.type || "photo",
-        url: item.url || "", thumbnail_url: item.thumbnail_url || "", category: item.category || "training",
+        urls: existingUrls, thumbnail_url: item.thumbnail_url || "", category: item.category || "training",
         age_group_id: item.age_group_id || "", team_id: item.team_id || "", program_id: item.program_id || ""
       });
     } else {
       setEditingId(null);
-      setFormData({ title: "", description: "", type: "photo", url: "", thumbnail_url: "", category: "training", age_group_id: "", team_id: "", program_id: "" });
+      setFormData({ title: "", description: "", type: "photo", urls: [], thumbnail_url: "", category: "training", age_group_id: "", team_id: "", program_id: "" });
     }
     setErrors({});
     setShowForm(true);
@@ -67,8 +87,9 @@ export default function AdminGalleryPage() {
     setSaving(true);
     setErrors({});
 
-    // 1. VALIDATE
+    // 1. Validate formData directly (schema now expects 'urls')
     const result = gallerySchema.safeParse(formData);
+    
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
       result.error.issues.forEach((issue) => { fieldErrors[issue.path[0] as string] = issue.message; });
@@ -77,13 +98,19 @@ export default function AdminGalleryPage() {
       return;
     }
 
-    // 2. SUBMIT
     const supabase = createClient();
+    
+    // 2. Map the form's 'urls' array to the database's 'url' column
     const payload = {
-      ...result.data,
+      title: result.data.title,
+      description: result.data.description || null,
+      type: result.data.type,
+      category: result.data.category,
       age_group_id: result.data.age_group_id || null,
       team_id: result.data.team_id || null,
       program_id: result.data.program_id || null,
+      thumbnail_url: result.data.thumbnail_url || null,
+      url: result.data.urls, // <-- Sends the array to the DB
     };
 
     let error;
@@ -156,7 +183,7 @@ export default function AdminGalleryPage() {
 
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Category *</label>
-                <select required value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value as any})} className={`w-full bg-background border p-3 text-foreground focus:outline-none focus:border-accent ${errors.category ? 'border-red-500' : 'border-border'}`}>
+                <select required value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} className={`w-full bg-background border p-3 text-foreground focus:outline-none focus:border-accent ${errors.category ? 'border-red-500' : 'border-border'}`}>
                   {CATEGORIES.map(cat => <option key={cat} value={cat}>{formatCategory(cat)}</option>)}
                 </select>
                 {errors.category && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {errors.category}</p>}
@@ -164,38 +191,59 @@ export default function AdminGalleryPage() {
 
               {formData.type === 'photo' ? (
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Upload Photo (Max 5MB) *</label>
-                  <FileUpload bucketName="club-media" folder="gallery/photos" value={formData.url || ""} onChange={(url) => setFormData({...formData, url})} accept="image/*" maxSizeMB={5} />
-                  {errors.url && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {errors.url}</p>}
+                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Upload Photos (Max 15 files, 5MB each) *</label>
+                  <MultiFileUpload 
+                    bucketName="club-media" 
+                    folder="gallery/photos" 
+                    values={formData.urls} 
+                    onChange={(urls) => setFormData({...formData, urls})} 
+                    accept="image/*" 
+                    maxSizeMB={5} 
+                    maxFiles={15} 
+                  />
+                  {/* FIXED: errors.urls instead of errors.url */}
+                  {errors.urls && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {errors.urls}</p>}
                 </div>
               ) : (
                 <div className="space-y-4">
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Upload Video File (Max 50MB) *</label>
-                    <FileUpload bucketName="club-media" folder="gallery/videos" value={formData.url || ""} onChange={(url) => setFormData({...formData, url})} accept="video/mp4,video/webm" maxSizeMB={50} />
-                    {errors.url && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {errors.url}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">OR Paste YouTube URL *</label>
-                    <input value={formData.url?.includes("youtube.com") || formData.url?.includes("youtu.be") ? formData.url : ""} onChange={(e) => setFormData({...formData, url: e.target.value})} className={`w-full bg-background border p-3 text-foreground focus:outline-none focus:border-accent ${errors.url ? 'border-red-500' : 'border-border'}`} placeholder="https://youtube.com/..." />
-                    {errors.url && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {errors.url}</p>}
+                    <MultiFileUpload 
+                      bucketName="club-media" 
+                      folder="gallery/videos" 
+                      values={formData.urls} 
+                      onChange={(urls) => setFormData({...formData, urls})} 
+                      accept="video/mp4,video/webm" 
+                      maxSizeMB={50} 
+                      maxFiles={15} 
+                    />
+                    {/* FIXED: errors.urls instead of errors.url */}
+                    {errors.urls && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {errors.urls}</p>}
                   </div>
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Video Thumbnail (Optional, Max 5MB)</label>
-                    <FileUpload bucketName="club-media" folder="gallery/thumbnails" value={formData.thumbnail_url || ""} onChange={(url) => setFormData({...formData, thumbnail_url: url})} accept="image/*" maxSizeMB={5} />
+                    <MultiFileUpload 
+                      bucketName="club-media" 
+                      folder="gallery/thumbnails" 
+                      values={formData.thumbnail_url ? [formData.thumbnail_url] : []} 
+                      onChange={(urls) => setFormData({...formData, thumbnail_url: urls[0] || ""})} 
+                      accept="image/*" 
+                      maxSizeMB={5} 
+                      maxFiles={1} 
+                    />
                   </div>
                 </div>
               )}
 
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Description</label>
-                <textarea value={formData.description || ""} onChange={(e) => setFormData({...formData, description: e.target.value})} className="w-full bg-background border border-border p-3 text-foreground focus:outline-none focus:border-accent h-24" />
+                <textarea value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="w-full bg-background border border-border p-3 text-foreground focus:outline-none focus:border-accent h-24" />
               </div>
 
               <div className="grid grid-cols-3 gap-4">
-                <SelectInput label="Age Group" value={formData.age_group_id || ""} onChange={(v) => setFormData({...formData, age_group_id: v})} options={[{value: "", label: "None"}, ...ageGroups.map(ag => ({value: ag.id, label: ag.name}))]} />
-                <SelectInput label="Team" value={formData.team_id || ""} onChange={(v) => setFormData({...formData, team_id: v})} options={[{value: "", label: "None"}, ...teams.map(t => ({value: t.id, label: t.name}))]} />
-                <SelectInput label="Program" value={formData.program_id || ""} onChange={(v) => setFormData({...formData, program_id: v})} options={[{value: "", label: "None"}, ...programs.map(p => ({value: p.id, label: p.name}))]} />
+                <SelectInput label="Age Group" value={formData.age_group_id} onChange={(v) => setFormData({...formData, age_group_id: v})} options={[{value: "", label: "None"}, ...ageGroups.map(ag => ({value: ag.id, label: ag.name}))]} />
+                <SelectInput label="Team" value={formData.team_id} onChange={(v) => setFormData({...formData, team_id: v})} options={[{value: "", label: "None"}, ...teams.map(t => ({value: t.id, label: t.name}))]} />
+                <SelectInput label="Program" value={formData.program_id} onChange={(v) => setFormData({...formData, program_id: v})} options={[{value: "", label: "None"}, ...programs.map(p => ({value: p.id, label: p.name}))]} />
               </div>
 
               <button type="submit" disabled={saving} className="btn-primary w-full flex justify-center mt-4">
@@ -206,39 +254,50 @@ export default function AdminGalleryPage() {
         </div>
       )}
 
-      {/* Gallery Grid (Unchanged) */}
+      {/* Gallery Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {loading ? <p className="text-muted-foreground col-span-full text-center py-12">Loading...</p> : gallery.length === 0 ? (
           <p className="text-muted-foreground col-span-full text-center py-12">No media uploaded yet.</p>
         ) : (
-          gallery.map((item) => (
-            <div key={item.id} className="bg-card border border-border group relative">
-              <div className="aspect-square relative overflow-hidden">
-                {item.type === 'video' ? (
-                  item.thumbnail_url ? <img src={item.thumbnail_url} alt={item.title} className="w-full h-full object-cover" /> :
-                  <div className="w-full h-full bg-muted flex items-center justify-center"><PlayCircle className="w-12 h-12 text-muted-foreground" /></div>
-                ) : <img src={item.url} alt={item.title} className="w-full h-full object-cover" />}
-                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                  <button onClick={() => openForm(item)} className="p-2 bg-accent text-accent-foreground rounded-sm"><Edit3 className="w-4 h-4" /></button>
-                  <button onClick={() => handleDelete(item.id)} className="p-2 bg-red-500 text-white rounded-sm"><Trash2 className="w-4 h-4" /></button>
+          gallery.map((item) => {
+            // Handle both string and array for backward compatibility
+            const displayUrl = Array.isArray(item.url) ? item.url[0] : item.url;
+            
+            return (
+              <div key={item.id} className="bg-card border border-border group relative">
+                <div className="aspect-square relative overflow-hidden">
+                  {item.type === 'video' ? (
+                    item.thumbnail_url ? <img src={item.thumbnail_url} alt={item.title} className="w-full h-full object-cover" /> :
+                    <div className="w-full h-full bg-muted flex items-center justify-center"><PlayCircle className="w-12 h-12 text-muted-foreground" /></div>
+                  ) : <img src={displayUrl} alt={item.title} className="w-full h-full object-cover" />}
+                  
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                    <button onClick={() => openForm(item)} className="p-2 bg-accent text-accent-foreground rounded-sm"><Edit3 className="w-4 h-4" /></button>
+                    <button onClick={() => handleDelete(item.id)} className="p-2 bg-red-500 text-white rounded-sm"><Trash2 className="w-4 h-4" /></button>
+                  </div>
+                  <div className="absolute top-2 left-2">
+                    <span className={`text-[10px] font-bold px-2 py-1 uppercase tracking-wider rounded-sm ${CATEGORY_COLORS[item.category]}`}>{formatCategory(item.category)}</span>
+                  </div>
+                  {Array.isArray(item.url) && item.url.length > 1 && (
+                    <div className="absolute top-2 right-2 bg-black/70 text-white text-[10px] font-bold px-2 py-1 rounded-sm">
+                      +{item.url.length - 1}
+                    </div>
+                  )}
                 </div>
-                <div className="absolute top-2 left-2">
-                  <span className={`text-[10px] font-bold px-2 py-1 uppercase tracking-wider rounded-sm ${CATEGORY_COLORS[item.category]}`}>{formatCategory(item.category)}</span>
+                <div className="p-3">
+                  <h3 className="font-heading text-sm font-bold uppercase text-foreground truncate">{item.title}</h3>
+                  <p className="text-xs text-muted-foreground mt-1">{new Date(item.created_at).toLocaleDateString()}</p>
                 </div>
               </div>
-              <div className="p-3">
-                <h3 className="font-heading text-sm font-bold uppercase text-foreground truncate">{item.title}</h3>
-                <p className="text-xs text-muted-foreground mt-1">{new Date(item.created_at).toLocaleDateString()}</p>
-              </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>
   );
 }
 
-// Reusable Components for Gallery Form
+// Reusable Components
 interface InputProps { label: string; value: string; onChange: (value: string) => void; type?: string; required?: boolean; placeholder?: string; error?: string; }
 function Input({ label, value, onChange, type = "text", required = false, placeholder = "", error }: InputProps) {
   return (
@@ -249,6 +308,7 @@ function Input({ label, value, onChange, type = "text", required = false, placeh
     </div>
   );
 }
+
 interface SelectProps { label: string; value: string; onChange: (value: string) => void; options: {value: string, label: string}[]; }
 function SelectInput({ label, value, onChange, options }: SelectProps) {
   return (

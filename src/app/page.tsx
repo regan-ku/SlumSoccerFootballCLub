@@ -3,135 +3,185 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { Heart, Trophy, Users, Activity } from "lucide-react";
+import { Heart, Trophy, Users, Calendar, PlayCircle, Quote } from "lucide-react";
 
 export default function Home() {
-  const [orgData, setOrgData] = useState({
-    name: "Kisumu GreenLand SoccerPlus Academy",
-    mission: "Empowering Kisumu's Youth Through Football and Discipline.",
-    mpesa_paybill_number: "000000",
-    mpesa_account_name: "Kisumu GreenLand Academy",
-  });
+  const [orgData, setOrgData] = useState({ name: "Kisumu GreenLand SoccerPlus Academy", mission: "Empowering Kisumu's Youth Through Football and Discipline.", mpesa_paybill_number: "000000", mpesa_account_name: "Kisumu GreenLand Academy" });
+  const [recentGallery, setRecentGallery] = useState<any[]>([]);
+  const [recentPrograms, setRecentPrograms] = useState<any[]>([]);
+  const [upcomingMatch, setUpcomingMatch] = useState<any>(null);
+  const [headCoach, setHeadCoach] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchOrgData = async () => {
+    const fetchData = async () => {
       const supabase = createClient();
-      const { data } = await supabase
-        .from("organization")
-        .select("name, mission, mpesa_paybill_number, mpesa_account_name")
-        .limit(1)
-        .single();
+      
+      const [orgRes, galleryRes, progRes, matchRes, coachRes] = await Promise.all([
+        supabase.from("organization").select("name, mission, mpesa_paybill_number, mpesa_account_name").limit(1).single(),
+        supabase.from("gallery").select("id, title, type, url, thumbnail_url").order("created_at", { ascending: false }).limit(4),
+        supabase.from("programs").select("id, name, description, photo_url").eq("is_active", true).order("created_at", { ascending: false }).limit(3),
+        supabase.from("league_fixtures").select("scheduled_date, home_team:league_teams!home_team_id(name), away_team:league_teams!away_team_id(name)").eq("status", "scheduled").order("scheduled_date", { ascending: true }).limit(1).single(),
+        supabase.from("staff").select("full_name, role, photo_url, bio").eq("role", "head_coach").limit(1).single()
+      ]);
 
-      if (data) {
-        setOrgData({
-          name: data.name || "Kisumu GreenLand SoccerPlus Academy",
-          mission: data.mission || "Empowering Kisumu's Youth Through Football and Discipline.",
-          mpesa_paybill_number: data.mpesa_paybill_number || "000000",
-          mpesa_account_name: data.mpesa_account_name || "Kisumu GreenLand Academy",
-        });
-      }
+      if (orgRes.data) setOrgData(orgRes.data);
+      if (galleryRes.data) setRecentGallery(galleryRes.data);
+      if (progRes.data) setRecentPrograms(progRes.data);
+      if (matchRes.data) setUpcomingMatch(matchRes.data);
+      if (coachRes.data) setHeadCoach(coachRes.data);
+      
+      setLoading(false);
     };
-    fetchOrgData();
+    fetchData();
   }, []);
 
   return (
     <div className="flex flex-col">
-      {/* 1. ANIMATED HERO SECTION */}
-      <section className="relative h-[90vh] flex items-center justify-center bg-black text-white overflow-hidden">
+      {/* 1. CINEMATIC HERO SECTION */}
+      <section className="relative h-[85vh] flex items-center justify-center bg-black text-white overflow-hidden">
+        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1517466787929-bc90951d0974?q=80&w=2000&auto=format&fit=crop')] bg-cover bg-center animate-slow-zoom opacity-40" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent z-10" />
         
-        {/* A. Background Image with Slow Zoom (Ken Burns Effect) */}
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1579952363873-27f3bade9f55?q=80&w=2000&auto=format&fit=crop')] bg-cover bg-center animate-slow-zoom opacity-30" />
-        
-        {/* B. Dark Gradient Overlay for Text Readability */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/60 to-black/90 z-10" />
-
-        {/* C. Animated Hexagonal Grid Pattern (Football Texture) */}
-        <div className="absolute inset-0 z-10 opacity-10" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2300cc6a' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-        }} />
-
-        {/* D. Floating Abstract Shapes */}
-        <div className="absolute top-1/4 left-10 w-32 h-32 bg-accent/20 rounded-full blur-3xl animate-float-slow z-10" />
-        <div className="absolute bottom-1/4 right-10 w-48 h-48 bg-yellow-500/10 rounded-full blur-3xl animate-float-delayed z-10" />
-
-        {/* E. Main Content */}
         <div className="relative z-20 text-center px-4 max-w-5xl mx-auto animate-fade-in-up">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-accent/10 border border-accent/30 rounded-full mb-6 backdrop-blur-sm">
-            <Activity className="w-4 h-4 text-accent animate-pulse" />
-            <span className="text-xs font-bold uppercase tracking-wider text-accent">Now Registering for 2024 Season</span>
-          </div>
-          
           <h1 className="font-heading text-5xl md:text-7xl lg:text-8xl font-bold uppercase tracking-tighter mb-6 leading-tight">
             More Than <span className="text-accent">Football</span>
           </h1>
-          
-          <p className="text-lg md:text-xl text-gray-300 mb-10 max-w-2xl mx-auto font-sans leading-relaxed">
+          <p className="text-lg md:text-2xl text-gray-200 mb-10 max-w-3xl mx-auto font-sans leading-relaxed">
             {orgData.mission}
           </p>
-          
-          <div className="flex flex-col md:flex-row gap-4 justify-center">
-            <Link href="/donate" className="btn-primary px-8 py-4 text-lg">
-              Support Our Kids
-            </Link>
-            <Link href="/teams" className="btn-outline !text-white !border-white hover:!bg-white hover:!text-black px-8 py-4 text-lg">
-              Meet The Teams
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/donate" className="btn-primary px-8 py-4 text-lg">Support Our Kids</Link>
+            <Link href="/gallery" className="btn-outline !text-white !border-white hover:!bg-white hover:!text-black px-8 py-4 text-lg flex items-center justify-center gap-2">
+              <PlayCircle className="w-5 h-5" /> View Highlights
             </Link>
           </div>
         </div>
-
-        {/* F. Scroll Down Indicator */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2 animate-bounce">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Scroll</span>
-          <div className="w-px h-8 bg-gradient-to-b from-accent to-transparent" />
-        </div>
       </section>
 
-      {/* 2. IMPACT / MISSION SECTION */}
-      <section className="section-padding bg-background text-foreground">
-        <div className="text-center mb-16">
-          <h2 className="font-heading text-4xl md:text-5xl font-bold uppercase tracking-tight mb-4">
-            Our Impact
-          </h2>
-          <div className="w-20 h-1 bg-accent mx-auto" />
+      {/* 2. LATEST MOMENTS (Gallery Preview) */}
+      <section className="section-padding bg-background">
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="font-heading text-3xl font-bold uppercase tracking-tight">Latest <span className="text-accent">Moments</span></h2>
+          <Link href="/gallery" className="text-sm font-bold uppercase tracking-wider text-muted-foreground hover:text-accent transition-colors flex items-center gap-1">View All <span className="text-lg">→</span></Link>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {[
-            { icon: <Trophy className="w-8 h-8 text-accent" />, title: "Football Academy", desc: "Professional coaching from U7 to Senior level, keeping kids off the streets and on the pitch." },
-            { icon: <Users className="w-8 h-8 text-accent" />, title: "Life Skills", desc: "Workshops on leadership, discipline, and teamwork that translate to success in life." },
-            { icon: <Heart className="w-8 h-8 text-accent" />, title: "Community Outreach", desc: "Feeding programs, education support, and mentorship for the most vulnerable families." }
-          ].map((item, index) => (
-            <div key={index} className="bg-card p-8 border border-border hover:border-accent transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-              <div className="mb-4 bg-accent/10 w-14 h-14 rounded-sm flex items-center justify-center">{item.icon}</div>
-              <h3 className="font-heading text-2xl font-bold uppercase mb-3">{item.title}</h3>
-              <p className="text-muted-foreground leading-relaxed">{item.desc}</p>
-            </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {recentGallery.map((item, idx) => (
+            <Link key={item.id} href="/gallery" className={`group relative overflow-hidden rounded-sm border border-border hover:border-accent transition-all duration-300 ${idx === 0 ? 'md:col-span-2 md:row-span-2 aspect-square' : 'aspect-video'}`}>
+              {item.type === 'video' && item.thumbnail_url ? (
+                <img src={item.thumbnail_url} alt={item.title} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" />
+              ) : (
+                <img src={item.url} alt={item.title} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" />
+              )}
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                {item.type === 'video' ? <PlayCircle className="w-12 h-12 text-accent" /> : <Heart className="w-8 h-8 text-white" />}
+              </div>
+            </Link>
           ))}
         </div>
       </section>
 
-      {/* 3. M-PESA DONATION CTA SECTION */}
-      <section className="section-padding bg-card border-y border-border text-center">
-        <h2 className="font-heading text-4xl md:text-5xl font-bold uppercase tracking-tight mb-6">
-          Help Us <span className="text-accent">Change Lives</span>
-        </h2>
-        <p className="text-muted-foreground max-w-2xl mx-auto mb-10 text-lg">
-          Your contribution buys football boots, funds life skills workshops, and provides meals for our players.
-        </p>
+      {/* 3. UPCOMING MATCH & LEADERSHIP VOICES */}
+      <section className="bg-card border-y border-border">
+        <div className="section-padding grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          {/* Upcoming Match */}
+          <div className="bg-background border border-border p-8 rounded-sm">
+            <div className="flex items-center gap-2 mb-6">
+              <Calendar className="w-5 h-5 text-accent" />
+              <h3 className="font-heading text-xl font-bold uppercase">Next Fixture</h3>
+            </div>
+            {upcomingMatch ? (
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground uppercase tracking-wider mb-4">{new Date(upcomingMatch.scheduled_date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
+                <div className="flex items-center justify-center gap-6 mb-6">
+                  <div className="text-right flex-1">
+                    <p className="font-heading text-2xl md:text-3xl font-bold uppercase">{upcomingMatch.home_team?.name || "Home"}</p>
+                  </div>
+                  <div className="bg-accent/10 text-accent px-4 py-2 rounded-sm font-heading text-xl font-bold">VS</div>
+                  <div className="text-left flex-1">
+                    <p className="font-heading text-2xl md:text-3xl font-bold uppercase">{upcomingMatch.away_team?.name || "Away"}</p>
+                  </div>
+                </div>
+                <Link href="/leagues" className="btn-outline w-full text-center">View Full Schedule</Link>
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-center py-8">No upcoming fixtures scheduled.</p>
+            )}
+          </div>
 
-        <div className="bg-background border border-border p-8 md:p-12 max-w-2xl mx-auto rounded-sm shadow-lg">
-          <p className="text-sm uppercase tracking-widest text-muted-foreground mb-2">M-Pesa Paybill Number</p>
-          <h3 className="font-heading text-5xl md:text-6xl font-bold text-foreground mb-4">
-            {orgData.mpesa_paybill_number}
-          </h3>
-          <p className="text-sm uppercase tracking-widest text-muted-foreground mb-2">Account Name</p>
-          <p className="font-heading text-2xl text-accent font-bold mb-8">
-            {orgData.mpesa_account_name}
-          </p>
-          
-          <Link href="/donate" className="btn-primary inline-block px-8 py-4 text-lg">
-            View Full Donation Details
-          </Link>
+          {/* Leadership Voice */}
+          <div className="relative">
+            <Quote className="absolute -top-4 -left-4 w-12 h-12 text-accent/20" />
+            <blockquote className="relative z-10">
+              <p className="text-xl md:text-2xl font-medium leading-relaxed mb-6 italic text-foreground">
+                "{headCoach?.bio || "Football is not just a game for us; it is a vehicle for discipline, education, and building the future leaders of our community. Every child who steps on this pitch is given the tools to succeed in life."}"
+              </p>
+              <div className="flex items-center gap-4">
+                {headCoach?.photo_url ? (
+                  <img src={headCoach.photo_url} alt={headCoach.full_name} className="w-14 h-14 rounded-full object-cover border-2 border-accent" />
+                ) : (
+                  <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center border-2 border-accent">
+                    <Users className="w-6 h-6 text-muted-foreground" />
+                  </div>
+                )}
+                <div>
+                  <p className="font-heading font-bold uppercase text-foreground">{headCoach?.full_name || "Head Coach"}</p>
+                  <p className="text-sm text-accent font-bold uppercase tracking-wider">Head Coach</p>
+                </div>
+              </div>
+            </blockquote>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. FEATURED PROGRAMS */}
+      <section className="section-padding bg-background">
+        <div className="text-center mb-12">
+          <h2 className="font-heading text-3xl md:text-4xl font-bold uppercase tracking-tight mb-4">Our <span className="text-accent">Programs</span></h2>
+          <p className="text-muted-foreground max-w-2xl mx-auto">Beyond the pitch, we provide holistic development for our youth.</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {recentPrograms.map((prog) => (
+            <Link key={prog.id} href={`/programs/${prog.id}`} className="group bg-card border border-border overflow-hidden hover:border-accent transition-all duration-300 flex flex-col">
+              <div className="aspect-video bg-muted relative overflow-hidden">
+                {prog.photo_url ? (
+                  <img src={prog.photo_url} alt={prog.name} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center"><Trophy className="w-12 h-12 text-muted-foreground" /></div>
+                )}
+              </div>
+              <div className="p-6 flex flex-col flex-grow">
+                <h3 className="font-heading text-xl font-bold uppercase mb-2 group-hover:text-accent transition-colors">{prog.name}</h3>
+                <p className="text-sm text-muted-foreground line-clamp-3 flex-grow">{prog.description}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* 5. CAPTIVATING DONATION CTA */}
+      <section className="relative py-24 md:py-32 bg-black text-white overflow-hidden">
+        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?q=80&w=2000&auto=format&fit=crop')] bg-cover bg-center opacity-30" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-transparent" />
+        
+        <div className="section-padding relative z-10 flex flex-col md:flex-row items-center gap-12">
+          <div className="flex-1">
+            <h2 className="font-heading text-4xl md:text-6xl font-bold uppercase tracking-tight mb-6">
+              Help Us <span className="text-accent">Change Lives</span>
+            </h2>
+            <p className="text-lg text-gray-300 mb-8 max-w-xl leading-relaxed">
+              Your contribution directly buys football boots, funds life skills workshops, and provides meals for our players. Be part of their journey.
+            </p>
+            <Link href="/donate" className="btn-primary inline-block px-8 py-4 text-lg">View Full Donation Details</Link>
+          </div>
+
+          <div className="w-full md:w-auto bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-sm shadow-2xl min-w-[320px]">
+            <p className="text-xs uppercase tracking-widest text-gray-400 mb-2 text-center">M-Pesa Paybill</p>
+            <h3 className="font-heading text-5xl font-bold text-accent text-center mb-2">{orgData.mpesa_paybill_number}</h3>
+            <div className="w-full h-px bg-white/10 my-4" />
+            <p className="text-xs uppercase tracking-widest text-gray-400 mb-1 text-center">Account Name</p>
+            <p className="font-heading text-xl text-white text-center font-bold">{orgData.mpesa_account_name}</p>
+          </div>
         </div>
       </section>
     </div>

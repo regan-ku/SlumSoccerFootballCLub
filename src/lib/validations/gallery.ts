@@ -8,9 +8,9 @@ export const gallerySchema = z.object({
   age_group_id: z.string().optional().or(z.literal("")),
   team_id: z.string().optional().or(z.literal("")),
   program_id: z.string().optional().or(z.literal("")),
-  // Note: 'url' and 'thumbnail_url' are handled by the FileUpload component state, 
-  // but we validate them here to ensure they aren't empty on submit.
-  url: z.string().min(1, "Please upload at least one file or provide a URL"),
+  
+  // UPDATED: Now expects an array of URLs from MultiFileUpload
+  urls: z.array(z.string()).min(1, "Please upload at least one file"),
   thumbnail_url: z.string().optional().or(z.literal("")),
 });
 

@@ -4,12 +4,12 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ArrowLeft, Loader2, AlertCircle } from "lucide-react";
-import FileUpload from "@/components/ui/FileUpload";
+import MultiFileUpload from "@/components/ui/MultiFileUpload"; // <-- IMPORT MULTI UPLOAD
 import { programSchema } from "@/lib/validations/program";
 
 const CATEGORIES = ["life_skills", "community_outreach", "education", "health", "mentorship", "training", "player_development"];
 
-// STRICT TYPE DEFINITION: Forces all fields to be strings, preventing "undefined" errors
+// STRICT TYPE DEFINITION: Updated media_urls to be an array of strings
 type ProgramFormState = {
   name: string;
   category: "life_skills" | "community_outreach" | "education" | "health" | "mentorship" | "training" | "player_development";
@@ -19,8 +19,7 @@ type ProgramFormState = {
   schedule: string;
   location: string;
   coordinator_id: string;
-  photo_url: string;
-  video_url: string;
+  media_urls: string[]; // Changed from photo_url/video_url to a unified media array
   media_type: "image" | "video";
 };
 
@@ -35,7 +34,7 @@ export default function AddProgramPage() {
     name: "", category: "life_skills", description: "",
     target_age_min: "5", target_age_max: "20",
     schedule: "", location: "", coordinator_id: "",
-    photo_url: "", video_url: "", media_type: "image"
+    media_urls: [], media_type: "image"
   });
 
   useEffect(() => {
@@ -54,13 +53,13 @@ export default function AddProgramPage() {
     setErrors({});
 
     // Convert strings to numbers for Zod validation
-    const payload = {
+    const payloadForValidation = {
       ...formData,
       target_age_min: Number(formData.target_age_min),
       target_age_max: Number(formData.target_age_max),
     };
 
-    const result = programSchema.safeParse(payload);
+    const result = programSchema.safeParse(payloadForValidation);
     
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
@@ -75,6 +74,7 @@ export default function AddProgramPage() {
     const { error } = await supabase.from("programs").insert([{
       ...result.data,
       coordinator_id: result.data.coordinator_id || null,
+      // Note: Ensure your DB column is named 'media_urls' and is type text[]
     }]);
 
     setLoading(false);
@@ -139,28 +139,25 @@ export default function AddProgramPage() {
           <div className="md:col-span-2">
             <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Media Type</label>
             <div className="grid grid-cols-2 gap-4">
-              <button type="button" onClick={() => setFormData({...formData, media_type: "image"})} className={`p-3 border text-sm font-bold uppercase transition-colors ${formData.media_type === 'image' ? 'border-accent text-accent bg-accent/10' : 'border-border text-muted-foreground hover:border-foreground'}`}>Photo</button>
-              <button type="button" onClick={() => setFormData({...formData, media_type: "video"})} className={`p-3 border text-sm font-bold uppercase transition-colors ${formData.media_type === 'video' ? 'border-accent text-accent bg-accent/10' : 'border-border text-muted-foreground hover:border-foreground'}`}>Video</button>
+              <button type="button" onClick={() => setFormData({...formData, media_type: "image"})} className={`p-3 border text-sm font-bold uppercase transition-colors ${formData.media_type === 'image' ? 'border-accent text-accent bg-accent/10' : 'border-border text-muted-foreground hover:border-foreground'}`}>Photos</button>
+              <button type="button" onClick={() => setFormData({...formData, media_type: "video"})} className={`p-3 border text-sm font-bold uppercase transition-colors ${formData.media_type === 'video' ? 'border-accent text-accent bg-accent/10' : 'border-border text-muted-foreground hover:border-foreground'}`}>Videos</button>
             </div>
           </div>
 
-          {formData.media_type === 'image' ? (
-            <div className="md:col-span-2">
-              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Upload Program Photo (Max 5MB)</label>
-              <FileUpload bucketName="club-media" folder="programs" value={formData.photo_url} onChange={(url) => setFormData({...formData, photo_url: url})} accept="image/*" maxSizeMB={5} />
-            </div>
-          ) : (
-            <div className="md:col-span-2 space-y-4">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Upload Video File (Max 50MB)</label>
-                <FileUpload bucketName="club-media" folder="programs/videos" value={formData.video_url} onChange={(url) => setFormData({...formData, video_url: url})} accept="video/mp4,video/webm" maxSizeMB={50} />
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">OR Paste YouTube URL</label>
-                <input value={formData.video_url.includes("youtube.com") || formData.video_url.includes("youtu.be") ? formData.video_url : ""} onChange={(e) => setFormData({...formData, video_url: e.target.value})} className="w-full bg-background border border-border p-3 text-foreground focus:outline-none focus:border-accent" placeholder="https://youtube.com/..." />
-              </div>
-            </div>
-          )}
+          <div className="md:col-span-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+              Upload {formData.media_type === 'image' ? 'Photos' : 'Videos'} (Max 15 files)
+            </label>
+            <MultiFileUpload 
+              bucketName="club-media" 
+              folder={`programs/${formData.media_type === 'image' ? 'photos' : 'videos'}`} 
+              values={formData.media_urls} 
+              onChange={(urls) => setFormData({...formData, media_urls: urls})} 
+              accept={formData.media_type === 'image' ? "image/*" : "video/mp4,video/webm"} 
+              maxSizeMB={formData.media_type === 'image' ? 5 : 50} 
+              maxFiles={15} 
+            />
+          </div>
 
           <div className="md:col-span-2">
             <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Description *</label>
