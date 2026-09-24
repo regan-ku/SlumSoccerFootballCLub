@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { MapPin, Mail, Phone } from 'lucide-react';
 
 export default function Footer() {
   const [orgData, setOrgData] = useState({
@@ -11,7 +12,9 @@ export default function Footer() {
     mpesa_paybill_number: '000000',
     mpesa_account_name: 'Slum Stars',
     contact_email: 'info@slumstars.com',
-    contact_phone: '+254 700 000 000'
+    contact_phone: '+254 700 000 000',
+    location: '',
+    map_embed_url: ''
   });
 
   useEffect(() => {
@@ -19,7 +22,7 @@ export default function Footer() {
       const supabase = createClient();
       const { data } = await supabase
         .from('organization')
-        .select('name, logo_url, mpesa_paybill_number, mpesa_account_name, contact_email, contact_phone')
+        .select('name, logo_url, mpesa_paybill_number, mpesa_account_name, contact_email, contact_phone, location, map_embed_url')
         .limit(1)
         .single();
       
@@ -30,7 +33,9 @@ export default function Footer() {
           mpesa_paybill_number: data.mpesa_paybill_number || '000000',
           mpesa_account_name: data.mpesa_account_name || 'Slum Stars',
           contact_email: data.contact_email || 'info@slumstars.com',
-          contact_phone: data.contact_phone || '+254 700 000 000'
+          contact_phone: data.contact_phone || '+254 700 000 000',
+          location: data.location || '',
+          map_embed_url: data.map_embed_url || ''
         });
       }
     };
@@ -40,7 +45,7 @@ export default function Footer() {
   return (
     <footer className="border-t border-border bg-card text-card-foreground">
       <div className="section-padding !px-4 md:!px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12 py-12">
           
           {/* Brand & Mission */}
           <div className="md:col-span-1">
@@ -94,21 +99,48 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Contact Info */}
+          {/* Location & Contact Info */}
           <div className="md:col-span-1">
             <h4 className="font-heading text-lg font-bold uppercase tracking-wider mb-4">
-              Get in Touch
+              Find Us
             </h4>
-            <ul className="space-y-3 text-sm text-muted-foreground">
-              <li className="flex flex-col">
-                <span className="text-xs uppercase tracking-wider mb-1">Email</span>
-                <a href={`mailto:${orgData.contact_email}`} className="text-foreground hover:text-accent transition-colors">{orgData.contact_email}</a>
-              </li>
-              <li className="flex flex-col">
-                <span className="text-xs uppercase tracking-wider mb-1">Phone / WhatsApp</span>
-                <a href={`https://wa.me/${orgData.contact_phone.replace(/\D/g, '')}`} className="text-foreground hover:text-accent transition-colors">{orgData.contact_phone}</a>
-              </li>
-            </ul>
+            
+            {orgData.location && (
+              <p className="text-sm text-muted-foreground mb-3 flex items-start gap-2">
+                <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-accent" />
+                {orgData.location}
+              </p>
+            )}
+
+            {/* Mini Map Embed */}
+            {orgData.map_embed_url ? (
+              <div className="w-full h-32 rounded-sm overflow-hidden border border-border mb-4 bg-muted">
+                <iframe 
+                  src={orgData.map_embed_url} 
+                  width="100%" 
+                  height="100%" 
+                  style={{ border: 0 }} 
+                  allowFullScreen 
+                  loading="lazy" 
+                  referrerPolicy="no-referrer-when-downgrade"
+                  title="Club Location Map"
+                />
+              </div>
+            ) : (
+              <div className="w-full h-32 rounded-sm border border-border mb-4 bg-muted flex items-center justify-center">
+                <MapPin className="w-6 h-6 text-muted-foreground" />
+              </div>
+            )}
+
+            {/* Contact Details */}
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <a href={`mailto:${orgData.contact_email}`} className="flex items-center gap-2 hover:text-accent transition-colors">
+                <Mail className="w-3 h-3" /> {orgData.contact_email}
+              </a>
+              <a href={`https://wa.me/${orgData.contact_phone.replace(/\D/g, '')}`} className="flex items-center gap-2 hover:text-accent transition-colors">
+                <Phone className="w-3 h-3" /> {orgData.contact_phone}
+              </a>
+            </div>
           </div>
         </div>
 

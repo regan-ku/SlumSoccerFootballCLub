@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Loader2, Save, Building2 } from "lucide-react";
-import FileUpload from "@/components/ui/FileUpload"; // <-- IMPORT ADDED
+import FileUpload from "@/components/ui/FileUpload";
 
 interface InputProps {
   label: string;
@@ -23,13 +23,14 @@ export default function AdminSettingsPage() {
   const [formData, setFormData] = useState({
     name: "", tagline: "", mission: "", vision: "",
     location: "", contact_email: "", contact_phone: "", whatsapp_number: "",
-    mpesa_paybill_number: "", mpesa_account_name: "", logo_url: "" // <-- ADDED logo_url
+    mpesa_paybill_number: "", mpesa_account_name: "", logo_url: "", 
+    map_embed_url: "" // <-- ADDED
   });
 
   useEffect(() => {
     const fetchOrg = async () => {
       const supabase = createClient();
-      const { data, error } = await supabase.from("organization").select("*").limit(1).single();
+      const { data } = await supabase.from("organization").select("*").limit(1).single();
       
       if (data) {
         setOrgId(data.id);
@@ -37,7 +38,8 @@ export default function AdminSettingsPage() {
           name: data.name || "", tagline: data.tagline || "", mission: data.mission || "", vision: data.vision || "",
           location: data.location || "", contact_email: data.contact_email || "", contact_phone: data.contact_phone || "", 
           whatsapp_number: data.whatsapp_number || "", mpesa_paybill_number: data.mpesa_paybill_number || "", 
-          mpesa_account_name: data.mpesa_account_name || "", logo_url: data.logo_url || "" // <-- FETCH logo_url
+          mpesa_account_name: data.mpesa_account_name || "", logo_url: data.logo_url || "",
+          map_embed_url: data.map_embed_url || "" // <-- FETCH
         });
       }
       setLoading(false);
@@ -53,7 +55,7 @@ export default function AdminSettingsPage() {
 
     let error;
     if (orgId) {
-      const res = await supabase.from("organization").update({ ...formData, updated_at: new Date().toISOString() }).eq("id", orgId);
+      const res = await supabase.from("organization").update({ ...formData }).eq("id", orgId);
       error = res.error;
     } else {
       const res = await supabase.from("organization").insert([formData]).select().single();
@@ -88,7 +90,6 @@ export default function AdminSettingsPage() {
           <h3 className="font-heading text-xl font-bold uppercase text-accent mb-4 border-b border-border pb-2">General Information</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
-            {/* NEW: CLUB LOGO UPLOAD */}
             <div className="md:col-span-2">
               <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Club Logo (Max 5MB)</label>
               <FileUpload 
@@ -103,15 +104,30 @@ export default function AdminSettingsPage() {
 
             <Input label="Club Name *" required value={formData.name} onChange={(v) => setFormData({...formData, name: v})} />
             <Input label="Tagline" value={formData.tagline} onChange={(v) => setFormData({...formData, tagline: v})} placeholder="e.g. More than just football" />
+            
             <div className="md:col-span-2">
               <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Mission Statement</label>
               <textarea value={formData.mission} onChange={(e) => setFormData({...formData, mission: e.target.value})} className="w-full bg-background border border-border p-3 text-foreground focus:outline-none focus:border-accent h-24" />
             </div>
+            
             <div className="md:col-span-2">
               <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Vision</label>
               <textarea value={formData.vision} onChange={(e) => setFormData({...formData, vision: e.target.value})} className="w-full bg-background border border-border p-3 text-foreground focus:outline-none focus:border-accent h-24" />
             </div>
-            <Input label="Location" value={formData.location} onChange={(v) => setFormData({...formData, location: v})} />
+            
+            <Input label="Location Address" value={formData.location} onChange={(v) => setFormData({...formData, location: v})} placeholder="e.g. Kisumu, Kenya" />
+            
+            {/* NEW: Map Embed Field */}
+            <div className="md:col-span-2">
+              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Google Maps Embed URL</label>
+              <input 
+                value={formData.map_embed_url} 
+                onChange={(e) => setFormData({...formData, map_embed_url: e.target.value})} 
+                className="w-full bg-background border border-border p-3 text-foreground focus:outline-none focus:border-accent" 
+                placeholder="Paste the 'src' URL from Google Maps Share > Embed a map" 
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">Go to Google Maps, click "Share", then "Embed a map", and copy only the URL inside the src="" attribute.</p>
+            </div>
           </div>
         </div>
 

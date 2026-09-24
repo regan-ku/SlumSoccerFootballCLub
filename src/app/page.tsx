@@ -3,10 +3,16 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { Heart, Trophy, Users, Calendar, PlayCircle, Quote } from "lucide-react";
+import { Heart, Trophy, Users, Calendar, PlayCircle, Quote, MapPin } from "lucide-react";
 
 export default function Home() {
-  const [orgData, setOrgData] = useState({ name: "Kisumu GreenLand SoccerPlus Academy", mission: "Empowering Kisumu's Youth Through Football and Discipline.", mpesa_paybill_number: "000000", mpesa_account_name: "Kisumu GreenLand Academy" });
+  const [orgData, setOrgData] = useState({ 
+    name: "Kisumu GreenLand SoccerPlus Academy", 
+    mission: "Empowering Kisumu's Youth Through Football and Discipline.", 
+    mpesa_paybill_number: "000000", 
+    mpesa_account_name: "Kisumu GreenLand Academy",
+    map_embed_url: ""
+  });
   const [recentGallery, setRecentGallery] = useState<any[]>([]);
   const [recentPrograms, setRecentPrograms] = useState<any[]>([]);
   const [upcomingMatch, setUpcomingMatch] = useState<any>(null);
@@ -18,11 +24,11 @@ export default function Home() {
       const supabase = createClient();
       
       const [orgRes, galleryRes, progRes, matchRes, coachRes] = await Promise.all([
-        supabase.from("organization").select("name, mission, mpesa_paybill_number, mpesa_account_name").limit(1).single(),
+        supabase.from("organization").select("name, mission, mpesa_paybill_number, mpesa_account_name, map_embed_url").limit(1).single(),
         supabase.from("gallery").select("id, title, type, url, thumbnail_url").order("created_at", { ascending: false }).limit(4),
-        supabase.from("programs").select("id, name, description, photo_url").eq("is_active", true).order("created_at", { ascending: false }).limit(3),
+        supabase.from("programs").select("id, name, description, photo_url, media_urls").eq("is_active", true).order("created_at", { ascending: false }).limit(3),
         supabase.from("league_fixtures").select("scheduled_date, home_team:league_teams!home_team_id(name), away_team:league_teams!away_team_id(name)").eq("status", "scheduled").order("scheduled_date", { ascending: true }).limit(1).single(),
-        supabase.from("staff").select("full_name, role, photo_url, bio").eq("role", "head_coach").limit(1).single()
+        supabase.from("staff").select("full_name, role, photo_url, quote").eq("role", "head_coach").limit(1).single()
       ]);
 
       if (orgRes.data) setOrgData(orgRes.data);
@@ -35,6 +41,12 @@ export default function Home() {
     };
     fetchData();
   }, []);
+
+  // Helper to safely get the first image from an array or string
+  const getFirstImage = (media: any) => {
+    if (Array.isArray(media)) return media[0];
+    return media;
+  };
 
   return (
     <div className="flex flex-col">
@@ -66,18 +78,21 @@ export default function Home() {
           <Link href="/gallery" className="text-sm font-bold uppercase tracking-wider text-muted-foreground hover:text-accent transition-colors flex items-center gap-1">View All <span className="text-lg">→</span></Link>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {recentGallery.map((item, idx) => (
-            <Link key={item.id} href="/gallery" className={`group relative overflow-hidden rounded-sm border border-border hover:border-accent transition-all duration-300 ${idx === 0 ? 'md:col-span-2 md:row-span-2 aspect-square' : 'aspect-video'}`}>
-              {item.type === 'video' && item.thumbnail_url ? (
-                <img src={item.thumbnail_url} alt={item.title} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" />
-              ) : (
-                <img src={item.url} alt={item.title} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" />
-              )}
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                {item.type === 'video' ? <PlayCircle className="w-12 h-12 text-accent" /> : <Heart className="w-8 h-8 text-white" />}
-              </div>
-            </Link>
-          ))}
+          {recentGallery.map((item, idx) => {
+            const displayUrl = getFirstImage(item.url);
+            return (
+              <Link key={item.id} href="/gallery" className={`group relative overflow-hidden rounded-sm border border-border hover:border-accent transition-all duration-300 ${idx === 0 ? 'md:col-span-2 md:row-span-2 aspect-square' : 'aspect-video'}`}>
+                {item.type === 'video' && item.thumbnail_url ? (
+                  <img src={item.thumbnail_url} alt={item.title} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" />
+                ) : (
+                  <img src={displayUrl || ''} alt={item.title} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" />
+                )}
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  {item.type === 'video' ? <PlayCircle className="w-12 h-12 text-accent" /> : <Heart className="w-8 h-8 text-white" />}
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </section>
 
@@ -109,12 +124,12 @@ export default function Home() {
             )}
           </div>
 
-          {/* Leadership Voice */}
+          {/* Leadership Voice (Now uses the updatable 'quote' field) */}
           <div className="relative">
             <Quote className="absolute -top-4 -left-4 w-12 h-12 text-accent/20" />
             <blockquote className="relative z-10">
               <p className="text-xl md:text-2xl font-medium leading-relaxed mb-6 italic text-foreground">
-                "{headCoach?.bio || "Football is not just a game for us; it is a vehicle for discipline, education, and building the future leaders of our community. Every child who steps on this pitch is given the tools to succeed in life."}"
+                "{headCoach?.quote || "Football is not just a game for us; it is a vehicle for discipline, education, and building the future leaders of our community. Every child who steps on this pitch is given the tools to succeed in life."}"
               </p>
               <div className="flex items-center gap-4">
                 {headCoach?.photo_url ? (
@@ -141,25 +156,51 @@ export default function Home() {
           <p className="text-muted-foreground max-w-2xl mx-auto">Beyond the pitch, we provide holistic development for our youth.</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {recentPrograms.map((prog) => (
-            <Link key={prog.id} href={`/programs/${prog.id}`} className="group bg-card border border-border overflow-hidden hover:border-accent transition-all duration-300 flex flex-col">
-              <div className="aspect-video bg-muted relative overflow-hidden">
-                {prog.photo_url ? (
-                  <img src={prog.photo_url} alt={prog.name} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center"><Trophy className="w-12 h-12 text-muted-foreground" /></div>
-                )}
-              </div>
-              <div className="p-6 flex flex-col flex-grow">
-                <h3 className="font-heading text-xl font-bold uppercase mb-2 group-hover:text-accent transition-colors">{prog.name}</h3>
-                <p className="text-sm text-muted-foreground line-clamp-3 flex-grow">{prog.description}</p>
-              </div>
-            </Link>
-          ))}
+          {recentPrograms.map((prog) => {
+            const displayImg = getFirstImage(prog.media_urls) || getFirstImage(prog.photo_url);
+            return (
+              <Link key={prog.id} href={`/programs/${prog.id}`} className="group bg-card border border-border overflow-hidden hover:border-accent transition-all duration-300 flex flex-col">
+                <div className="aspect-video bg-muted relative overflow-hidden">
+                  {displayImg ? (
+                    <img src={displayImg} alt={prog.name} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center"><Trophy className="w-12 h-12 text-muted-foreground" /></div>
+                  )}
+                </div>
+                <div className="p-6 flex flex-col flex-grow">
+                  <h3 className="font-heading text-xl font-bold uppercase mb-2 group-hover:text-accent transition-colors">{prog.name}</h3>
+                  <p className="text-sm text-muted-foreground line-clamp-3 flex-grow">{prog.description}</p>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </section>
 
-      {/* 5. CAPTIVATING DONATION CTA */}
+      {/* 5. LOCATION MAP SECTION */}
+      {orgData.map_embed_url && (
+        <section className="section-padding bg-card border-y border-border">
+          <div className="text-center mb-8">
+            <h2 className="font-heading text-3xl font-bold uppercase tracking-tight flex items-center justify-center gap-3">
+              <MapPin className="w-8 h-8 text-accent" /> Find <span className="text-accent">Us</span>
+            </h2>
+          </div>
+          <div className="w-full h-[400px] rounded-sm overflow-hidden border border-border shadow-lg">
+            <iframe 
+              src={orgData.map_embed_url} 
+              width="100%" 
+              height="100%" 
+              style={{ border: 0 }} 
+              allowFullScreen 
+              loading="lazy" 
+              referrerPolicy="no-referrer-when-downgrade"
+              title="Club Location"
+            />
+          </div>
+        </section>
+      )}
+
+      {/* 6. CAPTIVATING DONATION CTA */}
       <section className="relative py-24 md:py-32 bg-black text-white overflow-hidden">
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?q=80&w=2000&auto=format&fit=crop')] bg-cover bg-center opacity-30" />
         <div className="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-transparent" />

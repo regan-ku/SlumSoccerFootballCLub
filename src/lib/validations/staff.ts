@@ -7,6 +7,7 @@ export const staffSchema = z.object({
   phone: z.string().regex(/^\+?[0-9\s-]{10,15}$/, "Invalid phone number").or(z.literal("")),
   qualifications: z.string().optional(),
   bio: z.string().optional(),
+  quote: z.string().optional(), // <-- ADDED THIS LINE
   photo_url: z.string().optional(),
 });
 

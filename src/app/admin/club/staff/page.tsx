@@ -5,7 +5,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Plus, Mail, Phone, Loader2, X, Edit3, UserX, AlertCircle } from "lucide-react";
 import FileUpload from "@/components/ui/FileUpload";
-import { staffSchema, type StaffFormData } from "@/lib/validations/staff"; // <-- IMPORT ZOD
+import { staffSchema, type StaffFormData } from "@/lib/validations/staff";
 
 const ROLES = ["head_coach", "assistant_coach", "goalkeeping_coach", "life_skills_instructor", "program_coordinator", "admin"];
 
@@ -15,11 +15,11 @@ export default function AdminStaffPage() {
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [errors, setErrors] = useState<Record<string, string>>({}); // <-- NEW: Error state
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [formData, setFormData] = useState<StaffFormData>({
     full_name: "", role: "head_coach", email: "", phone: "", 
-    qualifications: "", bio: "", photo_url: ""
+    qualifications: "", bio: "", quote: "", photo_url: "" // <-- ADDED quote
   });
 
   useEffect(() => { fetchStaff(); }, []);
@@ -36,7 +36,6 @@ export default function AdminStaffPage() {
     setSaving(true);
     setErrors({});
 
-    // 1. VALIDATE
     const result = staffSchema.safeParse(formData);
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
@@ -46,14 +45,13 @@ export default function AdminStaffPage() {
       return;
     }
 
-    // 2. SUBMIT
     const supabase = createClient();
-    const { error } = await supabase.from("staff").insert([result.data]);
+    const { error } = await supabase.from("staff").insert([{ ...result.data, is_active: true }]);
     
     setSaving(false);
     if (!error) {
       setShowForm(false);
-      setFormData({ full_name: "", role: "head_coach", email: "", phone: "", qualifications: "", bio: "", photo_url: "" });
+      setFormData({ full_name: "", role: "head_coach", email: "", phone: "", qualifications: "", bio: "", quote: "", photo_url: "" });
       fetchStaff();
     } else {
       alert("Error saving staff: " + error.message);
@@ -71,7 +69,7 @@ export default function AdminStaffPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 p-6 md:p-8">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-heading text-3xl font-bold uppercase tracking-tight text-foreground">Coaching & Admin Staff</h1>
@@ -122,7 +120,14 @@ export default function AdminStaffPage() {
               
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Bio</label>
-                <textarea value={formData.bio || ""} onChange={(e) => setFormData({...formData, bio: e.target.value})} className="w-full bg-background border border-border p-3 text-foreground focus:outline-none focus:border-accent h-24" />
+                <textarea value={formData.bio || ""} onChange={(e) => setFormData({...formData, bio: e.target.value})} className="w-full bg-background border border-border p-3 text-foreground focus:outline-none focus:border-accent h-24" placeholder="Brief background and experience..." />
+              </div>
+
+              {/* NEW: Homepage Quote Field */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Homepage Quote / Statement</label>
+                <textarea value={formData.quote || ""} onChange={(e) => setFormData({...formData, quote: e.target.value})} className="w-full bg-background border border-border p-3 text-foreground focus:outline-none focus:border-accent h-24" placeholder="e.g., Football is not just a game for us; it is a vehicle for discipline..." />
+                <p className="text-[10px] text-muted-foreground mt-1">This specific quote will be featured prominently on the public homepage (especially for the Head Coach).</p>
               </div>
               
               <button type="submit" disabled={saving} className="btn-primary w-full flex justify-center">
@@ -134,10 +139,12 @@ export default function AdminStaffPage() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {loading ? <p className="text-muted-foreground">Loading...</p> : staff.map((member) => (
+        {loading ? <p className="text-muted-foreground col-span-full text-center py-12">Loading...</p> : staff.length === 0 ? (
+          <p className="text-muted-foreground col-span-full text-center py-12">No staff members added yet.</p>
+        ) : staff.map((member) => (
           <div key={member.id} className="bg-card border border-border p-6 hover:border-accent transition-colors flex flex-col">
             <div className="flex items-start justify-between mb-4">
-              <span className="bg-accent/10 text-accent text-[10px] font-bold px-2 py-1 uppercase tracking-wider">{member.role.replace('_', ' ')}</span>
+              <span className="bg-accent/10 text-accent text-[10px] font-bold px-2 py-1 uppercase tracking-wider rounded-sm">{member.role.replace('_', ' ')}</span>
             </div>
             <h3 className="font-heading text-xl font-bold uppercase text-foreground mb-2">{member.full_name}</h3>
             <div className="space-y-2 text-sm text-muted-foreground flex-grow">

@@ -10,31 +10,26 @@ export default function AdminSquadsPage() {
   const [playerCounts, setPlayerCounts] = useState<Record<string, number>>({});
   const [staffList, setStaffList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [orgName, setOrgName] = useState("Slum Stars FC");
 
   useEffect(() => {
     const fetchData = async () => {
       const supabase = createClient();
       
-      // 1. Get Org Name for dynamic team naming
-      const { data: orgData } = await supabase.from("organization").select("name").limit(1).single();
-      if (orgData) setOrgName(orgData.name || "Slum Stars FC");
-
-      // 2. Get Age Groups with their assigned coaches
+      // 1. Get Age Groups with their assigned coaches
       const { data: agData } = await supabase
         .from("age_groups")
         .select(`
           id, code, name, display_order,
-          male_coach:staff!male_coach_id(full_name),
-          female_coach:staff!female_coach_id(full_name)
+          male_coach:staff!male_coach_id(id, full_name),
+          female_coach:staff!female_coach_id(id, full_name)
         `)
         .eq("is_active", true)
         .order("display_order", { ascending: true });
 
-      // 3. Get Active Staff for dropdowns
+      // 2. Get Active Staff for dropdowns
       const { data: staffData } = await supabase.from("staff").select("id, full_name, role").eq("is_active", true);
 
-      // 4. Get Player Counts per Age Group + Gender
+      // 3. Get Player Counts per Age Group + Gender
       const { data: playersData } = await supabase
         .from("internal_players")
         .select("current_age_group_id, gender")
@@ -68,8 +63,19 @@ export default function AdminSquadsPage() {
       .eq("id", ageGroupId);
 
     if (!error) {
-      // Refresh data
-      window.location.reload(); 
+      // Optimistically update local state to avoid full page reload
+      setAgeGroups(prev => prev.map(ag => {
+        if (ag.id === ageGroupId) {
+          const coach = staffList.find(s => s.id === coachId);
+          return {
+            ...ag,
+            [`${gender}_coach`]: coach ? { id: coach.id, full_name: coach.full_name } : null
+          };
+        }
+        return ag;
+      }));
+    } else {
+      alert("Error updating coach: " + error.message);
     }
   };
 
@@ -93,6 +99,8 @@ export default function AdminSquadsPage() {
         {ageGroups.map((ag) => {
           const maleCount = playerCounts[`${ag.id}_male`] || 0;
           const femaleCount = playerCounts[`${ag.id}_female`] || 0;
+          const maleCoach = Array.isArray(ag.male_coach) ? ag.male_coach[0] : ag.male_coach;
+          const femaleCoach = Array.isArray(ag.female_coach) ? ag.female_coach[0] : ag.female_coach;
 
           return (
             <div key={ag.id} className="bg-card border border-border p-6 space-y-6">
@@ -111,7 +119,7 @@ export default function AdminSquadsPage() {
                 </div>
                 
                 <select 
-                  value={ag.male_coach?.id || ""} 
+                  value={maleCoach?.id || ""} 
                   onChange={(e) => updateCoach(ag.id, "male", e.target.value)}
                   className="w-full bg-background border border-border p-2 text-sm text-foreground focus:outline-none focus:border-accent rounded-sm"
                 >
@@ -142,7 +150,7 @@ export default function AdminSquadsPage() {
                 </div>
                 
                 <select 
-                  value={ag.female_coach?.id || ""} 
+                  value={femaleCoach?.id || ""} 
                   onChange={(e) => updateCoach(ag.id, "female", e.target.value)}
                   className="w-full bg-background border border-border p-2 text-sm text-foreground focus:outline-none focus:border-accent rounded-sm"
                 >
