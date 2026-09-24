@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, Link } from "next/navigation"; // Added Link
 import { createClient } from "@/lib/supabase/client";
-import { ArrowLeft, Loader2, AlertCircle } from "lucide-react";
+import { ArrowLeft, Loader2, AlertCircle, Edit3 } from "lucide-react"; // Added Edit3
 import MultiFileUpload from "@/components/ui/MultiFileUpload";
 import { programSchema } from "@/lib/validations/program";
 
@@ -18,13 +18,14 @@ type ProgramFormState = {
   schedule: string;
   location: string;
   coordinator_id: string;
-  media_urls: string[]; // Unified array for BOTH photos and videos
-  youtube_url: string;  // Optional separate field for YouTube links
+  media_urls: string[];
+  youtube_url: string;
 };
 
-export default function AddProgramPage() {
+export default function ProgramsPage() {
   const router = useRouter();
   const [staffList, setStaffList] = useState<any[]>([]);
+  const [programs, setPrograms] = useState<any[]>([]); // <-- NEW: State for existing programs
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -39,8 +40,21 @@ export default function AddProgramPage() {
   useEffect(() => {
     const fetchData = async () => {
       const supabase = createClient();
-      const { data } = await supabase.from("staff").select("id, full_name, role").eq("is_active", true);
-      if (data) setStaffList(data);
+      
+      // 1. Fetch Staff for the form
+      const { data: staffData } = await supabase.from("staff").select("id, full_name, role").eq("is_active", true);
+      if (staffData) setStaffList(staffData);
+
+      // 2. Fetch Existing Programs for the list
+      const { data: progData } = await supabase
+        .from("programs")
+        .select("id, name, category, is_active")
+        .order("created_at", { ascending: false });
+      
+      if (progData) {
+        // Only show active programs in the list
+        setPrograms(progData.filter(p => p.is_active !== false));
+      }
     };
     fetchData();
   }, []);
@@ -88,108 +102,163 @@ export default function AddProgramPage() {
       alert("Error saving program: " + error.message);
     } else {
       setSuccess("Program added successfully!");
-      setTimeout(() => router.push("/admin/club/programs"), 2000);
+      // Refresh the list to show the newly added program
+      const { data } = await supabase.from("programs").select("id, name, category, is_active").order("created_at", { ascending: false });
+      if (data) setPrograms(data.filter(p => p.is_active !== false));
+      
+      // Reset form
+      setFormData({
+        name: "", category: "life_skills", description: "",
+        target_age_min: "5", target_age_max: "20",
+        schedule: "", location: "", coordinator_id: "",
+        media_urls: [], youtube_url: ""
+      });
+      
+      setTimeout(() => setSuccess(""), 3000);
     }
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8 p-8">
+    <div className="max-w-4xl mx-auto space-y-8 p-8">
       <button onClick={() => router.back()} className="flex items-center text-muted-foreground hover:text-accent transition-colors">
-        <ArrowLeft className="w-4 h-4 mr-2" /> Back to Programs
+        <ArrowLeft className="w-4 h-4 mr-2" /> Back to Dashboard
       </button>
 
+      {/* ========================================== */}
+      {/* 1. EXISTING PROGRAMS LIST (NEWLY ADDED)    */}
+      {/* ========================================== */}
       <div>
-        <h1 className="font-heading text-3xl font-bold uppercase tracking-tight text-foreground">Add New Program</h1>
-        <p className="text-muted-foreground text-sm mt-1">Create a new community initiative.</p>
+        <h2 className="font-heading text-2xl font-bold uppercase tracking-tight text-foreground mb-4">Existing Programs</h2>
+        {programs.length === 0 ? (
+          <p className="text-muted-foreground text-sm bg-card border border-border p-4 rounded-sm">No programs have been added yet.</p>
+        ) : (
+          <div className="bg-card border border-border rounded-sm overflow-hidden mb-8">
+            <table className="w-full text-left">
+              <thead className="bg-muted/50 border-b border-border">
+                <tr>
+                  <th className="px-6 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">Program Name</th>
+                  <th className="px-6 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">Category</th>
+                  <th className="px-6 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {programs.map((prog) => (
+                  <tr key={prog.id} className="hover:bg-muted/30 transition-colors">
+                    <td className="px-6 py-3 font-medium text-foreground">{prog.name}</td>
+                    <td className="px-6 py-3 text-sm text-muted-foreground capitalize">{prog.category.replace('_', ' ')}</td>
+                    <td className="px-6 py-3 text-right">
+                      <Link 
+                        href={`/admin/club/programs/${prog.id}`} 
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-accent hover:text-foreground hover:bg-accent/10 rounded-sm transition-colors"
+                      >
+                        <Edit3 className="w-3 h-3" /> Edit
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
-      {success && <div className="bg-accent/10 border border-accent text-accent p-4 font-bold uppercase text-sm">{success}</div>}
+      <div className="border-t border-border my-8" />
 
-      {Object.keys(errors).length > 0 && (
-        <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-sm flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="font-bold text-sm uppercase">Please fix the following errors:</p>
-            <ul className="text-sm list-disc list-inside mt-1">{Object.values(errors).map((err, i) => <li key={i}>{err}</li>)}</ul>
-          </div>
-        </div>
-      )}
+      {/* ========================================== */}
+      {/* 2. ADD NEW PROGRAM FORM (YOUR ORIGINAL)    */}
+      {/* ========================================== */}
+      <div>
+        <h1 className="font-heading text-3xl font-bold uppercase tracking-tight text-foreground mb-1">Add New Program</h1>
+        <p className="text-muted-foreground text-sm mb-6">Create a new community initiative.</p>
 
-      <form onSubmit={handleSubmit} className="bg-card border border-border p-8 space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="md:col-span-2">
-            <Input label="Program Name *" required value={formData.name} error={errors.name} onChange={(v) => setFormData({...formData, name: v})} placeholder="e.g. Weekend Mentorship" />
-          </div>
+        {success && <div className="bg-accent/10 border border-accent text-accent p-4 font-bold uppercase text-sm mb-6">{success}</div>}
 
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Category *</label>
-            <select required value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value as any})} className={`w-full bg-background border p-3 text-foreground focus:outline-none focus:border-accent ${errors.category ? 'border-red-500' : 'border-border'}`}>
-              {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat.replace('_', ' ').toUpperCase()}</option>)}
-            </select>
-            {errors.category && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {errors.category}</p>}
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Coordinator</label>
-            <select value={formData.coordinator_id} onChange={(e) => setFormData({...formData, coordinator_id: e.target.value})} className="w-full bg-background border border-border p-3 text-foreground focus:outline-none focus:border-accent">
-              <option value="">Unassigned</option>
-              {staffList.map(s => <option key={s.id} value={s.id}>{s.full_name} ({s.role.replace('_',' ')})</option>)}
-            </select>
-          </div>
-
-          <Input label="Min Age" required type="number" value={formData.target_age_min} error={errors.target_age_min} onChange={(v) => setFormData({...formData, target_age_min: v})} />
-          <Input label="Max Age" required type="number" value={formData.target_age_max} error={errors.target_age_max} onChange={(v) => setFormData({...formData, target_age_max: v})} />
-          <Input label="Schedule" value={formData.schedule} error={errors.schedule} onChange={(v) => setFormData({...formData, schedule: v})} placeholder="e.g. Saturdays 9AM - 12PM" />
-          <Input label="Location" value={formData.location} error={errors.location} onChange={(v) => setFormData({...formData, location: v})} placeholder="e.g. Community Hall" />
-
-          {/* UNIFIED MEDIA UPLOAD SECTION */}
-          <div className="md:col-span-2 space-y-4">
+        {Object.keys(errors).length > 0 && (
+          <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-sm flex items-start gap-3 mb-6">
+            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-                Program Media (Photos & Videos)
-              </label>
-              <p className="text-[10px] text-muted-foreground mb-2">
-                You can upload a mix of photos and video files. Max 15 files, up to 100MB each.
-              </p>
-              <MultiFileUpload 
-                bucketName="club-media" 
-                folder="programs/media" 
-                values={formData.media_urls} 
-                onChange={(urls) => setFormData({...formData, media_urls: urls})} 
-                accept="image/*,video/mp4,video/webm,video/quicktime,video/x-m4v" 
-                maxSizeMB={100} 
-                maxFiles={15} 
-              />
+              <p className="font-bold text-sm uppercase">Please fix the following errors:</p>
+              <ul className="text-sm list-disc list-inside mt-1">{Object.values(errors).map((err, i) => <li key={i}>{err}</li>)}</ul>
+            </div>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="bg-card border border-border p-8 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="md:col-span-2">
+              <Input label="Program Name *" required value={formData.name} error={errors.name} onChange={(v) => setFormData({...formData, name: v})} placeholder="e.g. Weekend Mentorship" />
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-                YouTube Video URL (Optional)
-              </label>
-              <input 
-                type="url"
-                value={formData.youtube_url} 
-                onChange={(e) => setFormData({...formData, youtube_url: e.target.value})} 
-                className="w-full bg-background border border-border p-3 text-foreground focus:outline-none focus:border-accent transition-colors" 
-                placeholder="https://youtube.com/watch?v=..." 
-              />
-              <p className="text-[10px] text-muted-foreground mt-1">
-                If you have a YouTube highlight, paste the link here. It will be added to the program's media gallery.
-              </p>
+              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Category *</label>
+              <select required value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value as any})} className={`w-full bg-background border p-3 text-foreground focus:outline-none focus:border-accent ${errors.category ? 'border-red-500' : 'border-border'}`}>
+                {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat.replace('_', ' ').toUpperCase()}</option>)}
+              </select>
+              {errors.category && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {errors.category}</p>}
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Coordinator</label>
+              <select value={formData.coordinator_id} onChange={(e) => setFormData({...formData, coordinator_id: e.target.value})} className="w-full bg-background border border-border p-3 text-foreground focus:outline-none focus:border-accent">
+                <option value="">Unassigned</option>
+                {staffList.map(s => <option key={s.id} value={s.id}>{s.full_name} ({s.role.replace('_',' ')})</option>)}
+              </select>
+            </div>
+
+            <Input label="Min Age" required type="number" value={formData.target_age_min} error={errors.target_age_min} onChange={(v) => setFormData({...formData, target_age_min: v})} />
+            <Input label="Max Age" required type="number" value={formData.target_age_max} error={errors.target_age_max} onChange={(v) => setFormData({...formData, target_age_max: v})} />
+            <Input label="Schedule" value={formData.schedule} error={errors.schedule} onChange={(v) => setFormData({...formData, schedule: v})} placeholder="e.g. Saturdays 9AM - 12PM" />
+            <Input label="Location" value={formData.location} error={errors.location} onChange={(v) => setFormData({...formData, location: v})} placeholder="e.g. Community Hall" />
+
+            {/* UNIFIED MEDIA UPLOAD SECTION */}
+            <div className="md:col-span-2 space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                  Program Media (Photos & Videos)
+                </label>
+                <p className="text-[10px] text-muted-foreground mb-2">
+                  You can upload a mix of photos and video files. Max 15 files, up to 100MB each.
+                </p>
+                <MultiFileUpload 
+                  bucketName="club-media" 
+                  folder="programs/media" 
+                  values={formData.media_urls} 
+                  onChange={(urls) => setFormData({...formData, media_urls: urls})} 
+                  accept="image/*,video/mp4,video/webm,video/quicktime,video/x-m4v" 
+                  maxSizeMB={100} 
+                  maxFiles={15} 
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                  YouTube Video URL (Optional)
+                </label>
+                <input 
+                  type="url"
+                  value={formData.youtube_url} 
+                  onChange={(e) => setFormData({...formData, youtube_url: e.target.value})} 
+                  className="w-full bg-background border border-border p-3 text-foreground focus:outline-none focus:border-accent transition-colors" 
+                  placeholder="https://youtube.com/watch?v=..." 
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  If you have a YouTube highlight, paste the link here. It will be added to the program's media gallery.
+                </p>
+              </div>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Description *</label>
+              <textarea required value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className={`w-full bg-background border p-3 text-foreground focus:outline-none focus:border-accent h-32 ${errors.description ? 'border-red-500' : 'border-border'}`} placeholder="Describe the goals and activities of this program..." />
+              {errors.description && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {errors.description}</p>}
             </div>
           </div>
 
-          <div className="md:col-span-2">
-            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Description *</label>
-            <textarea required value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className={`w-full bg-background border p-3 text-foreground focus:outline-none focus:border-accent h-32 ${errors.description ? 'border-red-500' : 'border-border'}`} placeholder="Describe the goals and activities of this program..." />
-            {errors.description && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {errors.description}</p>}
-          </div>
-        </div>
-
-        <button type="submit" disabled={loading} className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50">
-          {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : "Add Program"}
-        </button>
-      </form>
+          <button type="submit" disabled={loading} className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50">
+            {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : "Add Program"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
