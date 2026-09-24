@@ -172,7 +172,7 @@ export default function ProgramDetailPage() {
               )}
             </div>
 
-            <Link href="/contact" className="btn-primary w-full text-center block mt-4">
+            <Link href="/about" className="btn-primary w-full text-center block mt-4">
               Join This Program
             </Link>
           </div>

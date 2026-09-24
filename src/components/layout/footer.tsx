@@ -13,8 +13,7 @@ export default function Footer() {
     mpesa_account_name: 'Slum Stars',
     contact_email: 'info@slumstars.com',
     contact_phone: '+254 700 000 000',
-    location: '',
-    map_embed_url: ''
+    location: ''
   });
 
   useEffect(() => {
@@ -22,7 +21,7 @@ export default function Footer() {
       const supabase = createClient();
       const { data } = await supabase
         .from('organization')
-        .select('name, logo_url, mpesa_paybill_number, mpesa_account_name, contact_email, contact_phone, location, map_embed_url')
+        .select('name, logo_url, mpesa_paybill_number, mpesa_account_name, contact_email, contact_phone, location')
         .limit(1)
         .single();
       
@@ -34,8 +33,7 @@ export default function Footer() {
           mpesa_account_name: data.mpesa_account_name || 'Slum Stars',
           contact_email: data.contact_email || 'info@slumstars.com',
           contact_phone: data.contact_phone || '+254 700 000 000',
-          location: data.location || '',
-          map_embed_url: data.map_embed_url || ''
+          location: data.location || ''
         });
       }
     };
@@ -105,35 +103,34 @@ export default function Footer() {
               Find Us
             </h4>
             
-            {orgData.location && (
-              <p className="text-sm text-muted-foreground mb-3 flex items-start gap-2">
-                <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-accent" />
-                {orgData.location}
-              </p>
-            )}
-
-            {/* Mini Map Embed */}
-            {orgData.map_embed_url ? (
-              <div className="w-full h-32 rounded-sm overflow-hidden border border-border mb-4 bg-muted">
-                <iframe 
-                  src={orgData.map_embed_url} 
-                  width="100%" 
-                  height="100%" 
-                  style={{ border: 0 }} 
-                  allowFullScreen 
-                  loading="lazy" 
-                  referrerPolicy="no-referrer-when-downgrade"
-                  title="Club Location Map"
-                />
-              </div>
+            {orgData.location ? (
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(orgData.location)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block group"
+              >
+                {/* Clickable Mini Map Card */}
+                <div className="w-full h-32 rounded-sm border border-border mb-3 bg-muted flex items-center justify-center group-hover:bg-accent/10 transition-colors relative overflow-hidden">
+                  <MapPin className="w-6 h-6 text-accent" />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/10 transition-colors">
+                    <span className="opacity-0 group-hover:opacity-100 text-[10px] font-bold uppercase text-accent bg-background/90 px-3 py-1 rounded-sm shadow-sm">
+                      Get Directions
+                    </span>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground group-hover:text-accent transition-colors">
+                  {orgData.location}
+                </p>
+              </a>
             ) : (
-              <div className="w-full h-32 rounded-sm border border-border mb-4 bg-muted flex items-center justify-center">
+              <div className="w-full h-32 rounded-sm border border-border mb-3 bg-muted flex items-center justify-center">
                 <MapPin className="w-6 h-6 text-muted-foreground" />
               </div>
             )}
 
             {/* Contact Details */}
-            <div className="space-y-2 text-sm text-muted-foreground">
+            <div className="space-y-2 text-sm text-muted-foreground mt-4">
               <a href={`mailto:${orgData.contact_email}`} className="flex items-center gap-2 hover:text-accent transition-colors">
                 <Mail className="w-3 h-3" /> {orgData.contact_email}
               </a>

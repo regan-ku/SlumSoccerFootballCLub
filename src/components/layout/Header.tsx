@@ -40,7 +40,7 @@ export default function Header() {
     { name: 'Teams', href: '/teams' },
     { name: 'Leagues', href: '/leagues' }, 
     { name: 'Programs', href: '/programs' },
-    { name: 'About', href: '/about' },
+    { name: 'About Us', href: '/about' },
   ];
 
   // 2. SECONDARY LINKS (Grouped in "More" dropdown - Swapped Competitions to here)

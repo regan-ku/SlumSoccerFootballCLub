@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { Trophy, Calendar, Clock, ArrowRight } from "lucide-react";
+import { Calendar, Clock, ArrowRight } from "lucide-react";
 
 export default function PublicCompetitionsPage() {
   const [competitions, setCompetitions] = useState<any[]>([]);
@@ -30,73 +30,72 @@ export default function PublicCompetitionsPage() {
   };
 
   return (
-    <div className="min-h-screen">
-      {/* Hero Section */}
-      <section className="relative bg-black py-20 md:py-32">
-        <div className="absolute inset-0 bg-gradient-to-b from-accent/5 to-transparent" />
+    <div className="min-h-screen bg-background">
+      {/* Ultra-Compact Hero Section */}
+      <section className="relative bg-card border-b border-border py-10 md:py-14">
         <div className="section-padding relative z-10 text-center">
-          <h1 className="font-heading text-4xl md:text-6xl lg:text-7xl font-bold uppercase tracking-tight mb-6">
+          <h1 className="font-heading text-3xl md:text-5xl font-bold uppercase tracking-tight mb-2">
             Upcoming <span className="text-accent">Competitions</span>
           </h1>
-          <p className="text-muted-foreground text-lg md:text-xl max-w-3xl mx-auto">
+          <p className="text-muted-foreground text-sm md:text-base max-w-xl mx-auto">
             Join our tournaments and friendly matches. Open to internal squads and external community teams.
           </p>
         </div>
       </section>
 
-      {/* Competitions Grid */}
-      <section className="section-padding bg-background">
+      {/* Compact Competitions Grid */}
+      <section className="section-padding !py-8 md:!py-12">
         {loading ? (
-          <div className="text-center text-muted-foreground py-20">Loading competitions...</div>
+          <div className="text-center text-muted-foreground py-12 text-sm">Loading competitions...</div>
         ) : competitions.length === 0 ? (
-          <div className="text-center text-muted-foreground py-20">
+          <div className="text-center text-muted-foreground py-12 text-sm">
             No upcoming competitions at the moment. Check back soon!
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {competitions.map((comp) => {
               const regOpen = isRegistrationOpen(comp.registration_deadline);
               return (
-                <div key={comp.id} className="bg-card border border-border p-8 hover:border-accent transition-colors flex flex-col">
-                  <div className="flex items-start justify-between mb-4">
-                    <span className={`text-[10px] font-bold px-3 py-1 uppercase tracking-wider rounded-sm ${
+                <div key={comp.id} className="bg-card border border-border p-5 md:p-6 hover:border-accent transition-colors flex flex-col">
+                  <div className="flex items-start justify-between mb-3">
+                    <span className={`text-[9px] font-bold px-2 py-0.5 uppercase tracking-wider rounded-sm ${
                       comp.type === 'tournament' ? 'bg-purple-500/10 text-purple-500' : 'bg-green-500/10 text-green-500'
                     }`}>
                       {comp.type}
                     </span>
-                    <span className={`text-[10px] font-bold px-3 py-1 uppercase tracking-wider rounded-sm flex items-center gap-1 ${
+                    <span className={`text-[9px] font-bold px-2 py-0.5 uppercase tracking-wider rounded-sm flex items-center gap-1 ${
                       regOpen ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
                     }`}>
-                      <Clock className="w-3 h-3" /> {regOpen ? 'Registration Open' : 'Registration Closed'}
+                      <Clock className="w-2.5 h-2.5" /> {regOpen ? 'Open' : 'Closed'}
                     </span>
                   </div>
                   
-                  <h3 className="font-heading text-2xl font-bold uppercase text-foreground mb-3">{comp.name}</h3>
-                  <p className="text-muted-foreground text-sm leading-relaxed mb-6 flex-grow">
+                  <h3 className="font-heading text-xl font-bold uppercase text-foreground mb-2 line-clamp-1">{comp.name}</h3>
+                  <p className="text-muted-foreground text-xs leading-relaxed mb-4 flex-grow line-clamp-3">
                     {comp.description || "An exciting competition bringing together the best teams in the community."}
                   </p>
                   
-                  <div className="space-y-3 text-sm text-muted-foreground mb-8">
+                  <div className="space-y-2 text-xs text-muted-foreground mb-4">
                     {comp.start_date && (
-                      <div className="flex items-center gap-3">
-                        <Calendar className="w-4 h-4 text-accent flex-shrink-0" />
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-3.5 h-3.5 text-accent flex-shrink-0" />
                         <span>Starts: <span className="text-foreground font-medium">{new Date(comp.start_date).toLocaleDateString()}</span></span>
                       </div>
                     )}
                     {comp.registration_deadline && (
-                      <div className="flex items-center gap-3">
-                        <Clock className="w-4 h-4 text-accent flex-shrink-0" />
-                        <span>Reg. Deadline: <span className="text-foreground font-medium">{new Date(comp.registration_deadline).toLocaleDateString()}</span></span>
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-3.5 h-3.5 text-accent flex-shrink-0" />
+                        <span>Deadline: <span className="text-foreground font-medium">{new Date(comp.registration_deadline).toLocaleDateString()}</span></span>
                       </div>
                     )}
                   </div>
 
                   {regOpen ? (
-                    <Link href="/contact" className="btn-primary w-full text-center flex items-center justify-center gap-2">
-                      Register Interest <ArrowRight className="w-4 h-4" />
+                    <Link href="/contact" className="btn-primary w-full text-center flex items-center justify-center gap-2 text-xs py-2.5">
+                      Register Interest <ArrowRight className="w-3 h-3" />
                     </Link>
                   ) : (
-                    <button disabled className="w-full py-3 px-8 uppercase tracking-wider font-bold bg-muted text-muted-foreground cursor-not-allowed rounded-sm">
+                    <button disabled className="w-full py-2.5 px-4 uppercase tracking-wider text-xs font-bold bg-muted text-muted-foreground cursor-not-allowed rounded-sm">
                       Registration Closed
                     </button>
                   )}
