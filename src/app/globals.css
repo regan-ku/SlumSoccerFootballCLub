@@ -113,3 +113,33 @@
     page-break-inside: avoid !important;
   }
 }
+
+
+/* Add these to the bottom of your globals.css */
+
+@keyframes slow-zoom {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.15); }
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0) translateX(0); }
+  50% { transform: translateY(-20px) translateX(10px); }
+}
+
+@keyframes float-delayed {
+  0%, 100% { transform: translateY(0) translateX(0); }
+  50% { transform: translateY(20px) translateX(-10px); }
+}
+
+.animate-slow-zoom {
+  animation: slow-zoom 20s ease-in-out infinite alternate;
+}
+
+.animate-float-slow {
+  animation: float-slow 8s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: float-delayed 10s ease-in-out infinite;
+}
