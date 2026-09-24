@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ArrowLeft, Loader2, AlertCircle } from "lucide-react";
-import MultiFileUpload from "@/components/ui/MultiFileUpload"; // <-- IMPORT MULTI UPLOAD
+import MultiFileUpload from "@/components/ui/MultiFileUpload";
 import { programSchema } from "@/lib/validations/program";
 
 const CATEGORIES = ["life_skills", "community_outreach", "education", "health", "mentorship", "training", "player_development"];
@@ -18,7 +18,7 @@ type ProgramFormState = {
   schedule: string;
   location: string;
   coordinator_id: string;
-  media_urls: string[]; // Array of strings
+  media_urls: string[];
   media_type: "image" | "video";
 };
 
@@ -108,7 +108,6 @@ export default function EditProgramPage() {
       .update({
         ...result.data,
         coordinator_id: result.data.coordinator_id || null,
-        updated_at: new Date().toISOString()
       })
       .eq("id", progId);
 
