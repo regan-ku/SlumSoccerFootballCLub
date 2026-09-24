@@ -33,9 +33,9 @@ const navGroups = [
   {
     title: "Content & Settings",
     items: [
-      { name: "Gallery", href: "/admin/content/gallery", icon: <Image className="w-4 h-4" /> },
-      { name: "News & Updates", href: "/admin/content/updates", icon: <Newspaper className="w-4 h-4" /> },
-      { name: "Organization", href: "/admin/settings", icon: <Settings className="w-4 h-4" /> },
+      { name: "Gallery", href: "/admin/content/gallery/new", icon: <Image className="w-4 h-4" /> },
+      { name: "News & Updates", href: "/admin/content/updates/new", icon: <Newspaper className="w-4 h-4" /> },
+      { name: "Organization", href: "/admin/details", icon: <Settings className="w-4 h-4" /> },
     ]
   }
 ];
